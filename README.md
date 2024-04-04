@@ -1,2 +1,2 @@
-https://github.com/mikenobbs/AssetAssistant/blob/main/Full_logo.png?raw=true
+[AssetAssistant](Full_logo.png)
 # asset-assist
