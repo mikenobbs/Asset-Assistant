@@ -5,7 +5,6 @@ import time
 import requests
 from datetime import datetime
 
-
 # Parse YAML config file
 with open('config.yml', 'r') as f:
     config = yaml.safe_load(f)
@@ -115,9 +114,9 @@ for filename in os.listdir(process_dir):
     os.remove(file_path)
 
 # Create a formatted summary
-summary = f"**Movie Posters:**\n {moved_counts['movies_dir']}\n"
-summary += f"**TV Show Posters:**\n {moved_counts['shows_dir']}\n"
-summary += f"**Collection Posters:**\n {moved_counts['collections_dir']}\n"
+summary = f"**Movie Assets:**\n {moved_counts['movies_dir']}\n"
+summary += f"**TV Show Assets:**\n {moved_counts['shows_dir']}\n"
+summary += f"**Collection Assets:**\n {moved_counts['collections_dir']}\n"
 summary += f"**Failures:**\n {moved_counts['failed_dir']}\n"
 summary += f"**Backup Enabled?**\n {'Yes' if backup_enabled else 'No'}\n"
 summary += f"**Total Run Time:**\n {total_runtime:.2f} seconds\n"
@@ -126,14 +125,14 @@ summary += f"**Total Run Time:**\n {total_runtime:.2f} seconds\n"
 current_date = datetime.now().date()
 
 # Read the script version from version.txt
-version = os.path.join(os.path.dirname(__file__), 'VERSION')
-with open(version, 'r') as f:
-    script_version = f.read().strip()
+version_file = os.path.join(os.path.dirname(__file__), 'VERSION')
+with open(version_file, 'r') as f:
+    version = f.read().strip()
     
 # Send summary message to Discord webhook as an embed
 webhook_url = config.get('webhook_url')
 image_url = "https://raw.githubusercontent.com/mikenobbs/AssetAssistant/main/logo/icon.png"
-footer_text = f"AssetAssistant [v{script_version}] | {current_date.strftime('%d/%m/%Y %H:%M')}"
+footer_text = f"AssetAssistant [v{version}] | {current_date.strftime('%d/%m/%Y %H:%M')}"
 color = 0x9E9E9E
 
 if webhook_url:
@@ -141,7 +140,7 @@ if webhook_url:
     embed = {
         "title": "Asset Assistant",
         "description": summary,
-        "image": {"url": image_url},
+        "thumbnail": {"url": image_url},
         "footer": {"text": footer_text},
         "color": color
     }
