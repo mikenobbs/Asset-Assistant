@@ -1,2 +1,2 @@
-![AssetAssistant](Full_logo.png)
+![AssetAssistant](logo/full_logo.png)
 # asset-assist
