@@ -4,4 +4,6 @@ movies_dir: /path/to/movies/directory
 collections_dir: /path/to/collections/directory
 
 enable_backup: false  # set to true to enable backup and create backup folder
-webhook_url: # "discord_webhook_url" leave blank to disable notifications
+naming_convention: # optional: emby, jellyfin, kodi, kometa, plex
+
+webhook_url: # discord webhook url, leave blank to disable notifications
