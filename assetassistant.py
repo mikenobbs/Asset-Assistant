@@ -3,6 +3,7 @@ import shutil
 import yaml
 import time
 import requests
+import PIL.Image
 from datetime import datetime
 
 # Parse YAML config file
@@ -18,6 +19,7 @@ script_dir = os.path.dirname(os.path.abspath(__file__))
 failed_dir = os.path.join(script_dir, 'failed')
 backup_enabled = config.get('enable_backup', False)
 backup_dir = os.path.join(script_dir, 'backup')
+naming_convention = config.get('naming_convention', None)
 
 # Create failed directory if it doesn't exist
 if not os.path.exists(failed_dir):
@@ -42,34 +44,47 @@ def match_and_copy(filename, process_dir, shows_dir, movies_dir, collections_dir
                     # Copy the file to the matching directory
                     src = os.path.join(process_dir, filename)
                     dest = os.path.join(directory, dir_name, filename)
+                    
+                    # Copy the file to the matching directory
                     shutil.copy(src, dest)
-                    copied_files.append(dest)
+                    
+                    # Rename the file based on dimensions
+                    with PIL.Image.open(dest) as img:
+                        width, height = img.size
+                        new_name = "poster" + ext if height > width else "background" + ext
+                        new_dest = os.path.join(directory, dir_name, new_name)
+                        os.rename(dest, new_dest)
+                        copied_files.append(new_dest)
+                    
                     return directory
     else:
         # If filename doesn't contain parentheses, search in collections directory
-        for dir_name in os.listdir(collections_dir):
-            if "Collection" in name:
-                name_without_collection = name.replace("Collection", "").strip()
-                if name_without_collection in dir_name:
-                    # Copy the file to the matching directory
+        if naming_convention == "kometa" or naming_convention == "kodi":
+            for dir_name in os.listdir(collections_dir):
+                if ("Collection" in name and name.replace("Collection", "").strip() in dir_name) or name in dir_name:
                     src = os.path.join(process_dir, filename)
                     dest = os.path.join(collections_dir, dir_name, filename)
-                    shutil.copy(src, dest)
-                    copied_files.append(dest)
-                    return collections_dir
-            else:
-                if name in dir_name:
+                    
                     # Copy the file to the matching directory
-                    src = os.path.join(process_dir, filename)
-                    dest = os.path.join(collections_dir, dir_name, filename)
                     shutil.copy(src, dest)
-                    copied_files.append(dest)
+                    
+                    # Rename the file based on dimensions
+                    with PIL.Image.open(dest) as img:
+                        width, height = img.size
+                        new_name = "poster" + ext if height > width else "background" + ext
+                        new_dest = os.path.join(collections_dir, dir_name, new_name)
+                        os.rename(dest, new_dest)
+                        copied_files.append(new_dest)
+                    
                     return collections_dir
+        else:
+            move_to_failed(filename, process_dir, failed_dir)
+            return failed_dir
 
     # If no matching directory is found, move to failed directory
     move_to_failed(filename, process_dir, failed_dir)
     return None
-
+    
 # Function to move the file to the failed directory
 def move_to_failed(filename, process_dir, failed_dir):
     src = os.path.join(process_dir, filename)
@@ -91,27 +106,27 @@ directory_names = {
     collections_dir: 'collections_dir',
     failed_dir: 'failed_dir'
 }
-            
+            # Match and copy files
 for filename in os.listdir(process_dir):
+    # Backup the file before any modification
+    if backup_enabled:
+        src = os.path.join(process_dir, filename)
+        shutil.copy(src, os.path.join(backup_dir, filename))
+
+    # Match and copy the file
     destination = match_and_copy(filename, process_dir, shows_dir, movies_dir, collections_dir, failed_dir, copied_files)
     if destination:
         moved_counts[directory_names[destination]] += 1
+
+    # Remove the file from process_dir
+    file_path = os.path.join(process_dir, filename)
+    os.remove(file_path)
 
 # Record end time
 end_time = time.time()
 
 # Calculate total runtime
 total_runtime = end_time - start_time
-
-# Copy successfully copied files to backup directory if backup is enabled
-if backup_enabled:
-    for file_path in copied_files:
-        shutil.copy(file_path, os.path.join(backup_dir, os.path.basename(file_path)))
-        
-# Remove all files from process_dir
-for filename in os.listdir(process_dir):
-    file_path = os.path.join(process_dir, filename)
-    os.remove(file_path)
 
 # Create a formatted summary
 summary = f"**Movie Assets:**\n {moved_counts['movies_dir']}\n"
@@ -122,7 +137,7 @@ summary += f"**Backup Enabled?**\n {'Yes' if backup_enabled else 'No'}\n"
 summary += f"**Total Run Time:**\n {total_runtime:.2f} seconds\n"
 
 # Get the current date
-current_date = datetime.now().date()
+current_date = datetime.now()
 
 # Read the script version from version.txt
 version_file = os.path.join(os.path.dirname(__file__), 'VERSION')
