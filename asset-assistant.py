@@ -212,7 +212,7 @@ with open(version_file, 'r') as f:
     
 ## Discord embed ##
 webhook_url = config.get('webhook_url')
-image_url = "https://raw.githubusercontent.com/mikenobbs/AssetAssistant/main/logo/icon.png"
+image_url = "https://raw.githubusercontent.com/mikenobbs/AssetAssistant/main/logo/logomark.png"
 footer_text = f"Asset Assistant [v{version}] | {current_date.strftime('%d/%m/%Y %H:%M')}"
 color = 0x9E9E9E
 
