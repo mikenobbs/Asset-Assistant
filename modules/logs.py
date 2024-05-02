@@ -16,10 +16,10 @@ class MyLogger:
             return super().format(record)
 
     def __init__(self, separating_character='=', screen_width=100, log_file='assistant.log'):
-        script_dir = os.path.dirname(os.path.abspath(__file__))
+        parent_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
         self.separating_character = separating_character
         self.screen_width = screen_width
-        self.log_dir = os.path.join(script_dir, 'logs')
+        self.log_dir = os.path.join(parent_dir, 'logs')
         os.makedirs(self.log_dir, exist_ok=True)
         self.log_file = os.path.join(self.log_dir, log_file)
         self.logger = logging.getLogger(__name__)
@@ -36,9 +36,6 @@ class MyLogger:
         file_formatter = self.CustomFormatter(self.screen_width)
         file_handler.setFormatter(file_formatter)
         self.logger.addHandler(file_handler)
-
-    # Other methods remain unchanged
-    
 
     def info(self, msg):
         self.logger.info(msg)
