@@ -1,9 +1,13 @@
-process_dir: /path/to/process/directory
-shows_dir: /path/to/shows/directory
-movies_dir: /path/to/movies/directory
-collections_dir: /path/to/collections/directory
+## Paths ##
+process: /path/to/process/directory
+shows: /path/to/shows/directory
+movies: /path/to/movies/directory
+collections: /path/to/collections/directory
 
-enable_backup: false  # set to true to enable backup and create backup folder
-naming_convention: # optional: emby, jellyfin, kodi, kometa, plex
+## Settings ##
+enable_backup: false # or true
+naming_convention: # options: emby, jellyfin, kodi, kometa, plex
 
-webhook_url: # discord webhook url, leave blank to disable notifications
+## Notifications ## 
+# Leave blank to disable
+discord_webhook: 
