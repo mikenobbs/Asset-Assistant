@@ -1,2 +1,3 @@
-requests
+Pillow
 PyYAML
+requests
