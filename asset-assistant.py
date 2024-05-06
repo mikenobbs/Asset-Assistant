@@ -8,6 +8,7 @@ import time
 import yaml
 from datetime import datetime
 from modules.logs import MyLogger
+from modules.notifications import discord, summary
 
 logger = MyLogger()
 
@@ -20,7 +21,7 @@ platform_info = platform.platform()
 logger.info(f"    Platform: {platform.platform()}")
 logger.separator(text="Asset Assistent Starting", debug=False)
   
-## Load config ##  
+## Load Config ##  
 try:
     with open('config.yml', 'r') as f:
         config = yaml.safe_load(f)
@@ -113,7 +114,7 @@ def match_and_copy(filename, process_dir, shows_dir, movies_dir, collections_dir
                     dest = os.path.join(directory, dir_name, filename)
                     
                     shutil.copy(src, dest)
-                    logger.info(f" Moved {filename} to directory: {dir_name}")
+                    logger.info(f" Copied {filename} to directory: {dir_name}")
                     
                     with PIL.Image.open(dest) as img:
                         width, height = img.size
@@ -132,7 +133,7 @@ def match_and_copy(filename, process_dir, shows_dir, movies_dir, collections_dir
                     dest = os.path.join(collections_dir, dir_name, filename)
                     
                     shutil.copy(src, dest)
-                    logger.info(f" Moved {filename} to directory: {dir_name}")
+                    logger.info(f" Copied {filename} to directory: {dir_name}")
                     
                     with PIL.Image.open(dest) as img:
                         width, height = img.size
@@ -156,7 +157,6 @@ def move_to_failed(filename, process_dir, failed_dir):
     src = os.path.join(process_dir, filename)
     dest = os.path.join(failed_dir, filename)
     shutil.copy(src, dest)
-    logger.info(f" Failed to match {filename}. Moved to failed directory")
 
 copied_files = []
 
@@ -168,22 +168,24 @@ directory_names = {
     collections_dir: 'collections_dir',
     failed_dir: 'failed_dir'
 }
-
-## Backup assets
+    
+## Backup assets ##
 for filename in os.listdir(process_dir):
-    if backup_enabled:
-        src = os.path.join(process_dir, filename)
-        shutil.copy(src, os.path.join(backup_dir, filename))
-        logger.info(f" Backed up {filename} to backup directory")
-
     destination = match_and_copy(filename, process_dir, shows_dir, movies_dir, collections_dir, failed_dir, copied_files)
     if destination:
+        if backup_enabled:
+            src = os.path.join(process_dir, filename)
+            shutil.move(src, os.path.join(backup_dir, filename))
+            logger.info(f" Moved {filename} to backup directory")
+            logger.info("")
+        
         moved_counts[directory_names[destination]] += 1
-
-    file_path = os.path.join(process_dir, filename)
-    os.remove(file_path)
-    logger.info(f" Removed {filename} from process directory")
-    logger.info("")
+    else:
+        src = os.path.join(process_dir, filename)
+        shutil.move(src, os.path.join(failed_dir, filename))
+        moved_counts['failed_dir'] += 1
+        logger.info(f" Failed to match {filename}. Moved to failed directory")
+        logger.info("")
 
 ## End ##
 end_time = time.time()
@@ -195,36 +197,19 @@ logger.info(f' Show Assets: {moved_counts["shows_dir"]}')
 logger.info(f' Collection Assets: {moved_counts["collections_dir"]}')
 logger.info(f' Failures: {moved_counts["failed_dir"]}')
 
-## Discord Summary ##
-summary = f"**Movie Assets:**\n {moved_counts['movies_dir']}\n"
-summary += f"**Show Assets:**\n {moved_counts['shows_dir']}\n"
-summary += f"**Collection Assets:**\n {moved_counts['collections_dir']}\n"
-summary += f"**Failures:**\n {moved_counts['failed_dir']}\n"
-summary += f"**Backup Enabled?**\n {'Yes' if backup_enabled else 'No'}\n"
-summary += f"**Total Run Time:**\n {total_runtime:.2f} seconds\n"
-
 current_date = datetime.now()
+
+## Notifications ##
+summary = summary(moved_counts, backup_enabled, total_runtime, version)
+
+## Discord notification ##
+discord_webhook = config.get('discord_webhook')
+if discord_webhook:
+    discord(summary, discord_webhook, version, total_runtime)
 
 ## Version ##
 version_file = os.path.join(os.path.dirname(__file__), 'VERSION')
 with open(version_file, 'r') as f:
     version = f.read().strip()
-    
-## Discord embed ##
-webhook_url = config.get('webhook_url')
-image_url = "https://raw.githubusercontent.com/mikenobbs/AssetAssistant/main/logo/logomark.png"
-footer_text = f"Asset Assistant [v{version}] | {current_date.strftime('%d/%m/%Y %H:%M')}"
-color = 0x9E9E9E
-
-if webhook_url:
-    embed = {
-        "title": "Asset Assistant",
-        "description": summary,
-        "thumbnail": {"url": image_url},
-        "footer": {"text": footer_text},
-        "color": color
-    }
-
-    response = requests.post(webhook_url, json={"embeds": [embed]})
 
 logger.separator(text=f'Asset Assistant Finished\nTotal runtime {total_runtime:2f} seconds', debug=False, border=True)
