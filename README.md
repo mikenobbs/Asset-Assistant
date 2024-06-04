@@ -113,7 +113,3 @@ I'm not a Python guy, heck I'm not even a coder, so take care when using this sc
 
 > [!WARNING]
 > Any images with conflicting filenames will be overwritten by the script, proceed with caution
-    
-## Support
-
-<p><a href="https://www.buymeacoffee.com/mikenobbs"> <img align="left" src="https://cdn.buymeacoffee.com/buttons/v2/default-yellow.png" height="50" width="210" alt="mikenobbs" /></a><a href="https://ko-fi.com/mikenobbs"> <img align="left" src="https://cdn.ko-fi.com/cdn/kofi3.png?v=3" height="50" width="210" alt="mikenobbs" /></a></p><br><br>
