@@ -35,7 +35,7 @@ The script is designed primarily to use images from [TPDb](https://theposterdb.c
 
 ### Installation
 
-After downloading/cloning the script, unzip it to see this:
+After downloading/cloning the repo, unzip the file to see this:
 ```graphql
 Asset-Assistant-main
 ├── asset-assistant.py
@@ -82,7 +82,7 @@ To use this script you will need to edit the following variables to your config.
 > It's optional but don't forget to set `service`! It greatly expands the function of the script. Depending on which server you use, this setting unlocks the ability to move and rename season posters and episode cards, and even collection assets! Without it you will be limited to just Movie and TV Show assets
 
 > [!IMPORTANT]
-> While all optional variables for the `service` setting allow the use and appropriate renaming of season posters and episode cards, only `Kodi` and `Kometa` support collections currently unfortunately, this due to the other services not directly supporting local assets for collections 
+> While all optional variables for the `service` setting allow the use and appropriate renaming of season posters and episode cards, only `Kodi` and `Kometa` support collections currently unfortunately, this is due to the other services not directly supporting local assets for collections 
 
 ### Deployment
 
