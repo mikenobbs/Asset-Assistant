@@ -11,9 +11,13 @@
     
 </div>
 
-Asset-Assistant is a simple python script designed to categorise, move and rename artwork for your personal media server. Add 100's of images without the need to manually drag and drop them into individual directories, giving you more time to actually enjoy your media.
+<p align="center">
+  <a href="https://ko-fi.com/mikenobbs" target="_blank"><img src="https://images2.imgbox.com/ad/d8/0Ulu9hEi_o.png" width="250" alt="Support Me On Ko-Fi"/></a>
+</p>
 
-The script is designed primarily to use images from [TPDb](https://theposterdb.com/) and [MediUX](https://mediux.pro/) as they have a standardised naming scheme of `Title (year)`, which *should* align with naming of your media folders. The script then compares the filename with the directory name and starts the moving and renaming process. For Movies/Shows/Collections, both posters and backgrounds are supported, with the images being dynamically renamed based on their dimensions.
+Asset-Assistant is a simple python script designed to categorise, move and rename artwork for your personal media server. Add 1000's of images without the need to manually drag and drop them into individual directories, giving you more time to actually enjoy your media.
+
+The script is designed primarily to use images from [TPDb](https://theposterdb.com/) and [MediUX](https://mediux.pro/) as they have a standardised naming scheme of `Title (year)`, which *should* align with naming of your media folders. The script then compares the filename with the directory name and starts the moving and renaming process. For Movies/Shows/Collections, both posters and backgrounds are supported, with the images being dynamically renamed based on their dimensions. Any additional renaming is based on the service you are using.
 
 ## Features
 
@@ -79,7 +83,7 @@ To use this script you will need to edit the following variables to your config.
 `discord_webhook`: (Optional) Discord webhook URL for notifications after every run
 
 > [!TIP]
-> It's optional but don't forget to set `service`! It greatly expands the function of the script. Depending on which server you use, this setting unlocks the ability to move and rename season posters and episode cards, and even collection assets! Without it you will be limited to just Movie and TV Show assets
+> It's optional but don't forget to set `service`, it greatly expands the function of the script! Depending on which server you use, this setting unlocks the ability to move and rename season posters and episode cards, and even collection assets! Without it you will be limited to just Movie and Show assets
 
 > [!IMPORTANT]
 > While all optional variables for the `service` setting allow the use and appropriate renaming of season posters and episode cards, only `Kodi` and `Kometa` support collections currently unfortunately, this is due to the other services not directly supporting local assets for collections 
@@ -102,7 +106,7 @@ To start this script, run
 
 ## Disclaimer
 
-I'm not a Python guy, heck I'm not even a coder, so take care when using this script. I tried to test every possible combination of variables but there's always a chance I missed something. I also only use Plex personally which I manage with Kometa, while I did research the other supported services I'm not as well versed on the ins and outs of them. As such, PRs are more than welcome, and if you have any issues at all feel free to post either an Issue here, or come and find me in the [TPDb Discord Server](https://discord.gg/tpdb-community-537054151583203338), DMs welcome and I'm always around 🙂
+I'm not a Python guy, heck I'm not even a coder, so take care when using this script. I tried to test every possible combination of variables but there's always a chance I missed something. I also personally only use Plex which I manage with Kometa, and while I did research the other supported services, I'm not as well versed on the ins and outs of them. As such, PRs are more than welcome, and if you have any issues at all feel free to post either an Issue here, or come and find me in the [TPDb Discord Server](https://discord.gg/tpdb-community-537054151583203338), DMs welcome and I'm always around 🙂
 
 > [!Tip]
 > As an extra precaution I'd recommend either setting up some dummy directories to test the script out for yourself, or running it with just a small amount of images (eg. a single show/movie/collection). This should give you a feel for how it works and let you tweak the variables if needed before unleashing it onto your entire library. 
