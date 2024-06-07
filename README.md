@@ -86,13 +86,13 @@ To use this script you will need to edit the following variables to your config.
 `discord_webhook`: (Optional) Discord webhook URL for notifications after every run
 
 > [!IMPORTANT]
-> All directories (process/movies/shows/collections) must be unique for the script to function properly. This means for `Kometa` you must have `asset_folders=true` set in your config, and you must specify separate paths for your librarys and collection assets. For example `/config/assets/collections`, `/config/assets/movies` etc. For `Kodi` this guide [here](https://kodi.wiki/view/Movie_set_information_folder) outlines the collection directory process.
+> All directories (process/movies/shows/collections) must be unique for the script to function properly. This means for `Kometa` you must have `asset_folders: true` set in your config, and you must specify separate paths for your librarys and collection assets. For example `/config/assets/collections`, `/config/assets/movies` etc. For `Kodi` this guide [here](https://kodi.wiki/view/Movie_set_information_folder) outlines the collection directory process.
 
 > [!TIP]
-> It's optional but don't forget to set `service`, it greatly expands the function of the script! Depending on which server you use, this setting unlocks the ability to move and rename season posters and episode cards, and even collection assets! Without it you will be limited to just Movie and Show assets
+> It's optional but don't forget to set `service`, it greatly expands the function of the script! Depending on which server you use, this setting unlocks the ability to move and rename season posters and episode cards, and even collection assets! Without it you will be limited to just Movie and Show assets.
 
 > [!NOTE]
-> While all optional variables for the `service` setting allow the use and appropriate renaming of season posters and episode cards, only `Kodi` and `Kometa` support collections currently unfortunately, this is due to the other services not directly supporting local assets for collections 
+> While all optional variables for the `service` setting allow the use and appropriate renaming of season posters and episode cards, only `Kodi` and `Kometa` support collections currently unfortunately, this is due to the other services not directly supporting local assets for collections.
 
 ### Deployment
 
@@ -118,4 +118,4 @@ I'm not a Python guy, heck I'm not even a coder, so take care when using this sc
 > As an extra precaution I'd recommend either setting up some dummy directories to test the script out for yourself, or running it with just a small amount of images (eg. a single show/movie/collection). This should give you a feel for how it works and let you tweak the variables if needed before unleashing it onto your entire library. 
 
 > [!WARNING]
-> Any images with conflicting filenames will be overwritten by the script, proceed with caution
+> Any images with conflicting filenames will be overwritten by the script, proceed with caution.
