@@ -19,6 +19,9 @@ Asset-Assistant is a simple python script designed to categorise, move and renam
 
 The script is designed primarily to use images from [TPDb](https://theposterdb.com/) and [MediUX](https://mediux.pro/) as they have a standardised naming scheme of `Title (year)`, which *should* align with naming of your media folders. The script then compares the filename with the directory name and starts the moving and renaming process. For Movies/Shows/Collections, both posters and backgrounds are supported, with the images being dynamically renamed based on their dimensions. Any additional renaming is based on the service you are using.
 
+> [!TIP]
+> Using [Sonarr](https://sonarr.tv/)/[Radarr](https://radarr.video/) combined with [TRaSH Guides](https://trash-guides.info/) will give you the best possible outcome, as the script was written with TRaSH's naming convention in mind.
+
 ## Features
 
 - Supports a range of naming schemes for popular services:
@@ -82,10 +85,13 @@ To use this script you will need to edit the following variables to your config.
 
 `discord_webhook`: (Optional) Discord webhook URL for notifications after every run
 
+> [!IMPORTANT]
+> All directories (process/movies/shows/collections) must be unique for the script to function properly. This means for `Kometa` you must have `asset_folders=true` set in your config, and you must specify separate paths for your librarys and collection assets. For example `/config/assets/collections`, `/config/assets/movies` etc. For `Kodi` this guide [here](https://kodi.wiki/view/Movie_set_information_folder) outlines the collection directory process.
+
 > [!TIP]
 > It's optional but don't forget to set `service`, it greatly expands the function of the script! Depending on which server you use, this setting unlocks the ability to move and rename season posters and episode cards, and even collection assets! Without it you will be limited to just Movie and Show assets
 
-> [!IMPORTANT]
+> [!NOTE]
 > While all optional variables for the `service` setting allow the use and appropriate renaming of season posters and episode cards, only `Kodi` and `Kometa` support collections currently unfortunately, this is due to the other services not directly supporting local assets for collections 
 
 ### Deployment
