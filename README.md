@@ -15,12 +15,15 @@
   <a href="https://ko-fi.com/mikenobbs" target="_blank"><img src="https://images2.imgbox.com/ad/d8/0Ulu9hEi_o.png" width="250" alt="Support Me On Ko-Fi"/></a>
 </p>
 
-Asset-Assistant is a simple python script designed to categorise, move and rename artwork for your personal media server. Add 1000's of images without the need to manually drag and drop them into individual directories, giving you more time to actually enjoy your media.
+Asset-Assistant (AA) is a simple python script designed to categorise, move and rename artwork for your personal media server. Add 1000's of images without the need to manually drag and drop them into individual directories, giving you more time to actually enjoy your media.
 
-The script is designed primarily to use images from [TPDb](https://theposterdb.com/) and [MediUX](https://mediux.pro/) as they have a standardised naming scheme of `Title (year)`, which *should* align with naming of your media folders. The script then compares the filename with the directory name and starts the moving and renaming process. For Movies/Shows/Collections, both posters and backgrounds are supported, with the images being dynamically renamed based on their dimensions. Any additional renaming is based on the service you are using.
+The script is designed primarily to use images from [The Poster Database (TPDb)](https://theposterdb.com/) and [MediUX](https://mediux.pro/) as they use a straightforward naming scheme of `Title (year)`, which *should* align with naming of your media folders. The script then compares the filename with the directory name and starts the moving and renaming process. For Movies/Shows/Collections, both posters and backgrounds are supported, with the images being dynamically renamed based on their dimensions. Any additional renaming is based on the service you are using.
 
 > [!TIP]
 > Using [Sonarr](https://sonarr.tv/)/[Radarr](https://radarr.video/) combined with [TRaSH Guides](https://trash-guides.info/) will give you the best possible outcome, as the script was written with TRaSH's naming convention in mind.
+
+> [!IMPORTANT]
+> One of the main points of failure is going to be collection assets. This is partly down to the loose way in which they are detected, but mainly the issue is going to be any discrepencies between what you've called your collections and what they're called on TPDb/MediUX. Fortunately, failed assets are moved to a separate directory for you to either rename and try again, or move manually 🙂
 
 ## Features
 
@@ -59,7 +62,7 @@ Asset-Assistant-main
 └── VERSION
 ```
 
-Install requirements.txt
+Open a terminal/CMD window in this directory and install requirements.txt
 
 ```
 pip install -r requirements.txt
@@ -67,7 +70,7 @@ pip install -r requirements.txt
 
 ### Config Variables
 
-To use this script you will need to edit the following variables to your config.yml file
+To use this script you will need to edit the following variables in your config.yml file
 
 `process`: Directory for all your downloaded assets (emptied after every run)
 
@@ -86,21 +89,45 @@ To use this script you will need to edit the following variables to your config.
 `discord_webhook`: (Optional) Discord webhook URL for notifications after every run
 
 > [!IMPORTANT]
-> All directories (process/movies/shows/collections) must be unique for the script to function properly. This means for `Kometa` you must have `asset_folders: true` set in your config, and you must specify separate paths for your librarys and collection assets. For example `/config/assets/collections`, `/config/assets/movies` etc. For `Kodi` this guide [here](https://kodi.wiki/view/Movie_set_information_folder) outlines the collection directory process.
+> All directories (process/movies/shows/collections) must be unique for the script to function properly. For `Kodi`, this guide [here](https://kodi.wiki/view/Movie_set_information_folder) outlines the collection directory process, which you'll want to point AA at. For `Kometa`, you may need to adjust your setup slightly in order to achieve the separate directories. Below is an example of how to achieve this:
+> ```yml
+> libraries:
+>   Movies:
+>     collection_files:
+>     - file: config/movies1.yml
+>       asset_directory: config/assets/collections
+>     - file: config/movies2.yml
+>       asset_directory: config/assets/collections
+>     settings:
+>       asset_directory: config/assets/movies
+>   TV Shows:
+>     collection_files:
+>     - repo: config/tv1.yml
+>       asset_directory: config/assets/collections
+>     - repo: config/tv2.yml
+>       asset_directory: config/assets/collections
+>     settings:
+>       asset_directory: config/assets/tv
+> ```
+> Notice that while the main asset directory for each library is `movies/tv`, I specify that each collection yml is actually pointing at `config/assets/collections`.
 
 > [!TIP]
-> It's optional but don't forget to set `service`, it greatly expands the function of the script! Depending on which server you use, this setting unlocks the ability to move and rename season posters and episode cards, and even collection assets! Without it you will be limited to just Movie and Show assets.
+> It's optional but don't forget to set `service`, it greatly expands the functionality of AA. Depending on which server you use, this setting unlocks the ability to move and rename season posters and episode cards, and even collection assets. Without it you will be limited to just movie and show assets.
 
 > [!NOTE]
-> While all optional variables for the `service` setting allow the use and appropriate renaming of season posters and episode cards, only `Kodi` and `Kometa` support collections currently unfortunately, this is due to the other services not directly supporting local assets for collections.
+> While all optional variables for the `service` setting allow the use and appropriate renaming of season posters and episode cards, only `Kodi` and `Kometa` support collections currently unfortunately. This is due to the other services not directly supporting local assets for collections.
+
+> [!WARNING]
+> All assets will be removed from `process` after each run. In case of any incorrect moves I highly recommend using `endable_backup: true`.
 
 ### Deployment
 
-To start this script, run
+From the script directory, run
 
 ```
   python asset-assistant.py
 ```
+to start AA.
 
 ## Roadmap
 
@@ -112,10 +139,10 @@ To start this script, run
 
 ## Disclaimer
 
-I'm not a Python guy, heck I'm not even a coder, so take care when using this script. I tried to test every possible combination of variables but there's always a chance I missed something. I also personally only use Plex which I manage with Kometa, and while I did research the other supported services, I'm not as well versed on the ins and outs of them. As such, PRs are more than welcome, and if you have any issues at all feel free to post either an Issue here, or come and find me in the [TPDb Discord Server](https://discord.gg/tpdb-community-537054151583203338), DMs welcome and I'm always around 🙂
+I'm not a Python guy, heck I'm not even a coder, so take care when using this script. I tried to test every possible combination of variables but there's always a chance I missed something. I also personally only use Plex which I manage with Kometa, and while I did research the other supported services, I'm not as well versed on the ins and outs of them. As such, [PRs](https://github.com/mikenobbs/Asset-Assistant/pulls) are more than welcome, and if you have any issues at all feel free to post either an [Issue](https://github.com/mikenobbs/Asset-Assistant/issues), or come and find me in the [TPDb Discord Server](https://discord.gg/tpdb-community-537054151583203338), DMs welcome and I'm always around 🙂
 
 > [!Tip]
-> As an extra precaution I'd recommend either setting up some dummy directories to test the script out for yourself, or running it with just a small amount of images (eg. a single show/movie/collection). This should give you a feel for how it works and let you tweak the variables if needed before unleashing it onto your entire library. 
+> As an extra precaution I'd recommend either setting up some dummy directories to test AA out for yourself, or running it with just a small amount of images (eg. a single show/movie/collection). This should give you a feel for how it works and let you tweak the variables if needed before unleashing it onto your entire library. 
 
 > [!WARNING]
 > Any images with conflicting filenames will be overwritten by the script, proceed with caution.
