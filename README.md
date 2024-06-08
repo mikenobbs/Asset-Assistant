@@ -111,11 +111,8 @@ To use this script you will need to edit the following variables in your config.
 > ```
 > Notice that while the main asset directory for each library is `movies/tv`, I specify that each collection yml is actually pointing at `config/assets/collections`.
 
-> [!TIP]
-> It's optional but don't forget to set `service`, it greatly expands the functionality of AA. Depending on which server you use, this setting unlocks the ability to move and rename season posters and episode cards, and even collection assets. Without it you will be limited to just movie and show assets.
-
 > [!NOTE]
-> While all optional variables for the `service` setting allow the use and appropriate renaming of season posters and episode cards, only `Kodi` and `Kometa` support collections currently unfortunately. This is due to the other services not directly supporting local assets for collections.
+> While optional, setting the `service` variable greatly expands the functionality of AA. Depending on which server you use, this setting unlocks the ability to move and rename season posters and episode cards, and even collection assets. Without it you will be limited to just movie and show assets. Please note that currently only `Kodi` and `Kometa` support collection assets unfortunately. This is due to the other services not directly supporting local assets for collections.
 
 > [!WARNING]
 > All assets will be removed from `process` after each run. In case of any incorrect moves I highly recommend using `endable_backup: true`.
