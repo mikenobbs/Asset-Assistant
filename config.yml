@@ -5,8 +5,9 @@ movies: /path/to/movies/directory
 collections: /path/to/collections/directory
 
 ## Settings ##
-enable_backup: false # or true
-naming_convention: # options: emby, jellyfin, kodi, kometa, plex
+enable_backup:  # true or false, false by default
+service:  # optional: plex, kometa, emby, jellyfin, kodi
+plex_specials:  # required if using plex, true = Specials, false = Season 00
 
 ## Notifications ## 
 # Leave blank to disable
