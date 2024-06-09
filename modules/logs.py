@@ -7,6 +7,8 @@ class MyLogger:
             super().__init__(*args, **kwargs)
             self.screen_width = screen_width
 
+        logging.addLevelName(logging.WARNING, 'WARN')
+        
         def format(self, record):
             levelname = record.levelname
             if levelname == "INFO" or levelname == "WARN":
@@ -39,6 +41,9 @@ class MyLogger:
 
     def info(self, msg):
         self.logger.info(msg)
+        
+    def info_center(self, msg):
+        self.logger.info(self._centered(str(msg)))
         
     def debug(self, msg):
         self.logger.debug(msg)
@@ -84,7 +89,7 @@ class MyLogger:
             if border:
                 self.print(border_text, debug=debug)
 
-    def _get_handler(self, log_file, count=3):
+    def _get_handler(self, log_file, count=9):
         handler = RotatingFileHandler(log_file, delay=True, mode="a", backupCount=count, encoding="utf-8")
         formatter = logging.Formatter("[%(asctime)s]  [%(levelname)s]  |%(message)-{0}s|".format(self.screen_width))
         handler.setFormatter(formatter)
