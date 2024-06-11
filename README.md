@@ -45,7 +45,7 @@ The script is designed primarily to use images from [The Poster Database (TPDb)]
 
 ### Installation
 
-After downloading/cloning the repo, unzip the file to see this:
+After downloading/cloning the repo, unzip the file to see this directory structure:
 ```graphql
 Asset-Assistant-main
 ├── asset-assistant.py
@@ -112,7 +112,7 @@ To use this script you will need to edit the following variables in your config.
 > Notice that while the main asset directory for each library is `movies/tv`, I specify that each collection yml is actually pointing at `config/assets/collections`.
 
 > [!NOTE]
-> While optional, setting the `service` variable greatly expands the functionality of AA. Depending on which server you use, this setting unlocks the ability to move and rename season posters and episode cards, and even collection assets. Without it you will be limited to just movie and show assets. Please note that currently only `Kodi` and `Kometa` support collection assets unfortunately. This is due to the other services not directly supporting local assets for collections.
+> While optional, setting the `service` variable greatly expands the functionality of AA. Depending on which service you use, this setting unlocks the ability to move and rename season posters and episode cards, and even collection assets. Without it you will be limited to just movie and show assets. Please note that currently only `Kodi` and `Kometa` support collection assets unfortunately. This is due to the other services not directly supporting local assets for collections.
 
 > [!WARNING]
 > All assets will be removed from `process` after each run. In case of any incorrect moves I highly recommend using `endable_backup: true`.
