@@ -17,7 +17,7 @@
 
 Asset-Assistant (AA) is a simple python script designed to categorise, move and rename artwork for your personal media server. Add 1000's of images without the need to manually drag and drop them into individual directories, giving you more time to actually enjoy your media.
 
-The script is designed primarily to use images from [The Poster Database (TPDb)](https://theposterdb.com/) and [MediUX](https://mediux.pro/) as they use a straightforward naming scheme of `Title (year)`, which *should* align with naming of your media folders. The script then compares the filename with the directory name and starts the moving and renaming process. For Movies/Shows/Collections, both posters and backgrounds are supported, with the images being dynamically renamed based on their dimensions. Any additional renaming is based on the service you are using.
+The script is designed primarily to use images from [The Poster Database (TPDb)](https://theposterdb.com/) and [MediUX](https://mediux.pro/) as they use a straightforward naming scheme of `Title (year)`, which *should* align with naming of your media folders. The script then compares the filename with the directory name and starts the moving and renaming process. For Movies/Shows/Collections, both posters and backgrounds are supported, with the images being dynamically renamed based on their dimensions. Season and episode renaming is dependent on the service you are using.
 
 > [!TIP]
 > Using [Sonarr](https://sonarr.tv/)/[Radarr](https://radarr.video/) combined with [TRaSH Guides](https://trash-guides.info/) will give you the best possible outcome, as the script was written with TRaSH's naming convention in mind.
