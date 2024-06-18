@@ -4,10 +4,10 @@
   
 <div align="center">
   
-  ![GitHub Release](https://img.shields.io/github/v/release/mikenobbs/asset-assistant?include_prereleases&display_name=release&style=flat)
-  ![GitHub Downloads (all assets, all releases)](https://img.shields.io/github/downloads/mikenobbs/asset-assistant/total?style=flat)
-  ![GitHub Repo stars](https://img.shields.io/github/stars/mikenobbs/asset-assistant?style=flat)
-  ![GitHub watchers](https://img.shields.io/github/watchers/mikenobbs/asset-assistant)
+  [![GitHub Release](https://img.shields.io/github/v/release/mikenobbs/asset-assistant?include_prereleases&display_name=release&style=flat)](https://github.com/mikenobbs/Asset-Assistant/releases)
+  [![GitHub Downloads (all assets, all releases)](https://img.shields.io/github/downloads/mikenobbs/asset-assistant/total?style=flat)](https://github.com/mikenobbs/Asset-Assistant/archive/refs/heads/main.zip)
+  [![GitHub Repo stars](https://img.shields.io/github/stars/mikenobbs/asset-assistant?style=flat)](https://github.com/mikenobbs/Asset-Assistant/stargazers)
+  [![GitHub watchers](https://img.shields.io/github/watchers/mikenobbs/asset-assistant)](https://github.com/mikenobbs/Asset-Assistant/watchers)
     
 </div>
 
