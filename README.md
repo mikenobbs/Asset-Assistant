@@ -94,18 +94,18 @@ To use this script you will need to edit the following variables in your config.
 > libraries:
 >   Movies:
 >     collection_files:
->     - file: config/movies1.yml
->       asset_directory: config/assets/collections
->     - file: config/movies2.yml
->       asset_directory: config/assets/collections
+>       - file: config/movies1.yml
+>         asset_directory: config/assets/collections
+>       - file: config/movies2.yml
+>         asset_directory: config/assets/collections
 >     settings:
 >       asset_directory: config/assets/movies
 >   TV Shows:
 >     collection_files:
->     - repo: config/tv1.yml
->       asset_directory: config/assets/collections
->     - repo: config/tv2.yml
->       asset_directory: config/assets/collections
+>       - repo: config/tv1.yml
+>         asset_directory: config/assets/collections
+>       - repo: config/tv2.yml
+>         asset_directory: config/assets/collections
 >     settings:
 >       asset_directory: config/assets/tv
 > ```
