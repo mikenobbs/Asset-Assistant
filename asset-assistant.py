@@ -1,18 +1,18 @@
 import os
 import PIL.Image
 import platform
+import re
 import requests
 import shutil
 import sys
 import time
 import yaml
-import re
+import zipfile
 from datetime import datetime
 from modules.logs import MyLogger
 from modules.notifications import discord, generate_summary
 
 logger = MyLogger()
-
 
 ## start ##
 start_time = time.time()
@@ -31,7 +31,6 @@ platform_info = platform.platform()
 logger.info(f" Platform: {platform.platform()}")
 logger.separator(text="Asset Assistant Starting", debug=False)
 
-
 ## load config ##  
 try:
     with open('config.yml', 'r') as f:
@@ -42,7 +41,6 @@ try:
 except FileNotFoundError:
     logger.error(f" Config file 'config.yml' not found at {os.path.dirname(os.path.abspath(__file__))}. Terminating script.")
     sys.exit(1)
-
 
 ## paths ##
 process_dir = config['process']
@@ -56,19 +54,16 @@ backup_dir = os.path.join(script_dir, 'backup')
 service = config.get('service', None)
 plex_specials = config.get('plex_specials', None)
 
-
 ## path check ##
 unique_paths = {process_dir, movies_dir, shows_dir, collections_dir}
 if len(unique_paths) != 4:
     logger.error(" Directory paths must be unique. Terminating script.")
     sys.exit(1)
-  
     
 ## check process directory ##
 if not os.path.exists(process_dir):
     logger.error(f" Process directory '{process_dir}' not found. Terminating script.")
     sys.exit(1)
-
 
 ## check media directories ##
 optional_dirs = {
@@ -99,7 +94,6 @@ if collections_dir:
 else:
     logger.warning(f" - Directory not found, skipping collections")
 logger.debug("")
-
 
 ## service check ##
 if service == None:
@@ -155,38 +149,86 @@ else:
     
 logger.separator(text="Processing Images", debug=False, border=True)
 
+## extract zip files ##
+def unzip_files(process_dir):
+    for item in os.listdir(process_dir):
+        if item.lower().endswith('.zip'):
+            file_path = os.path.join(process_dir, item)
+            with zipfile.ZipFile(file_path, 'r') as zip_ref:
+                zip_ref.extractall(process_dir)
+            os.remove(file_path)
+            logger.info(f" Processing '{item}'")
+            logger.info("")
+
+## process subdirectories ##
+def process_directories(process_dir):
+    for item in os.listdir(process_dir):
+        item_path = os.path.join(process_dir, item)
+        if os.path.isdir(item_path):
+            for root, _, files in os.walk(item_path):
+                for file in files:
+                    if file.lower().endswith(('.png', '.jpg', '.jpeg')):
+                        src = os.path.join(root, file)
+                        dest = os.path.join(process_dir, file)
+                        shutil.move(src, dest)
+            shutil.rmtree(item_path)
+            logger.info(f" Processimg folder '{item}'")
+            logger.info("")
+
 ## define categories ##
 def categories(filename, movies_dir, shows_dir):
     season_pattern = re.compile(r'Season\s+(\d+)', re.IGNORECASE)
     episode_pattern = re.compile(r'S(\d+)[\s\.]?E(\d+)', re.IGNORECASE)
     specials_pattern = re.compile(r'Specials', re.IGNORECASE)
+    show_pattern = re.compile(r'(.+)\s\((\d{4})\)', re.IGNORECASE)
 
     season_match = season_pattern.search(filename)
     episode_match = episode_pattern.search(filename)
     specials_match = specials_pattern.search(filename)
+    show_match = show_pattern.search(filename)
     
     category = None
     season_number = None 
     episode_number = None
-
+    show_name = None
+    
+    if show_match:
+        show_name = show_match.group(1).strip()
+        show_year = show_match.group(2).strip()
+    
     if season_match:
         if service:
             category = 'season'
             season_number = season_match.group(1)
+            if show_name:
+                expected_dir = f"{show_name} ({show_year})"
+                if not os.path.exists(os.path.join(shows_dir, expected_dir)):
+                    category = None
         else:
             category = 'skip'
+    
     elif specials_match:
         if service:
             category = 'season'
+            if show_name:
+                expected_dir = f"{show_name} ({show_year})/Specials"
+                if not os.path.exists(os.path.join(shows_dir, expected_dir)):
+                    category = None
         else:
             category = 'skip'
+    
     elif episode_match:
         if service:
             category = 'episode'
             season_number = episode_match.group(1)
             episode_number = episode_match.group(2)
+            if show_name:
+                expected_dir = f"{show_name} ({show_year})"
+                if not os.path.exists(os.path.join(shows_dir, expected_dir)):
+                    category = None
         else:
             category = 'skip'
+    
     else:
         for dir_name in os.listdir(collections_dir):
             if filename.split('.')[0].lower().replace("collection", "").strip() == dir_name.lower().replace("collection", "").strip():
@@ -194,7 +236,7 @@ def categories(filename, movies_dir, shows_dir):
                     category = 'collection'
                     break
                 elif service not in ["kometa", "kodi"]:
-                    category = 'skip'
+                    category = 'not_supported'
                 break
         else:
             for dir_name in os.listdir(movies_dir):
@@ -211,13 +253,9 @@ def categories(filename, movies_dir, shows_dir):
         move_to_failed(filename, process_dir, failed_dir)
         logger.info(f" {filename}:")
         if category == 'skip':
-            logger.info(" - Asset skipped due to chosen naming convention")
-        elif movies_dir == None:
-            logger.info(" - Skipped due to missing movies directory")
-        elif shows_dir == None:
-            logger.info(" - Skipped due to missing shows directory")
-        elif collections_dir == None:
-            logger.info(" - Skipped due to missing collections directory")
+            logger.info(" - Asset skipped due to 'service' not being specified")
+        elif category == 'not_supported':
+            logger.info(f" - Asset skipped due to {service.capitalize()} not supporting collection assets")
         else:
             logger.info(" - Match not found, please double check file/directory naming")
         logger.info(" - Moved to failed directory")
@@ -249,12 +287,29 @@ def copy_and_rename(filename, category, season_number, episode_number, movies_di
                     os.rename(dest, new_dest)
                     logger.info(f" - Renamed {new_name}")
                 return category
+                
+    elif category == 'collection':
+        directory = collections_dir
+        for dir_name in os.listdir(directory):
+            if filename.split('.')[0].lower().replace("collection", "").strip() in dir_name.lower():
+                dest = os.path.join(directory, dir_name, filename)
+                shutil.copy(src, dest)
+                logger.info(f" {filename}:")
+                logger.info(f" - Category: {category.capitalize()}")
+                logger.info(f" - Copied to {dir_name}")
+                with PIL.Image.open(dest) as img:
+                    width, height = img.size
+                    new_name = "poster" + os.path.splitext(filename)[1] if height > width else "background" + os.path.splitext(filename)[1]
+                    new_dest = os.path.join(directory, dir_name, new_name)
+                    os.rename(dest, new_dest)
+                    logger.info(f" - Renamed {new_name}")
+                    return category
                     
-   #elif service == 'emby' 
+    #elif service == 'emby' 
    
-   #elif service == 'jellyfin'
+    #elif service == 'jellyfin'
    
-   #elif service == 'kodi'
+    #elif service == 'kodi'
     
     elif service == 'kometa':
         if category == 'season':
@@ -396,23 +451,6 @@ def copy_and_rename(filename, category, season_number, episode_number, movies_di
                         logger.info("")
                         return category
             return category
-
-    elif category == 'collection':
-        directory = collections_dir
-        for dir_name in os.listdir(directory):
-            if filename.split('.')[0].lower().replace("collection", "").strip() in dir_name.lower():
-                dest = os.path.join(directory, dir_name, filename)
-                shutil.copy(src, dest)
-                logger.info(f" {filename}:")
-                logger.info(f" - Category: {category.capitalize()}")
-                logger.info(f" - Copied to {dir_name}")
-                with PIL.Image.open(dest) as img:
-                    width, height = img.size
-                    new_name = "poster" + os.path.splitext(filename)[1] if height > width else "background" + os.path.splitext(filename)[1]
-                    new_dest = os.path.join(directory, dir_name, new_name)
-                    os.rename(dest, new_dest)
-                    logger.info(f" - Renamed {new_name}")
-                    return category
     else:
         move_to_failed(filename, process_dir, failed_dir)
     
@@ -447,13 +485,17 @@ def backup(filename, process_dir, backup_dir):
         logger.error(" - Permission denied when backing up")
     except Exception as e:
         logger.error(" - Failed to backup to backup directory: {e}")
-    
+
+## track assets ##
 copied_files = []
 
-moved_counts = {'movie':0, 'show': 0, 'season': 0, 'episode': 0, 'collection': 0, 'failed': 0}
-    
+moved_counts = {'movie':0, 'show': 0, 'season': 0, 'episode': 0, 'collection': 0, 'failed': 0} 
 
 ## processing loop ##           
+unzip_files(process_dir)
+
+process_directories(process_dir)
+
 for filename in os.listdir(process_dir):
     category, season_number, episode_number = categories(filename, movies_dir, shows_dir)
     if category in ['movie', 'show', 'season', 'episode', 'collection']:
@@ -461,7 +503,7 @@ for filename in os.listdir(process_dir):
         if updated_category != 'failed':
             if backup_enabled:
                 backup(filename, process_dir, backup_dir)
-                logger.info("")
+                #logger.info("")
             else:
                 try:
                     os.remove(os.path.join(process_dir, filename))
