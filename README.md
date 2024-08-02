@@ -35,6 +35,7 @@ The script is designed primarily to use images from [The Poster Database (TPDb)]
   - [Plex](https://www.plex.tv/)
 - Supports posters and backgrounds for Movies, Shows and Collections
 - Supports season posters and episode cards for Shows
+- Supports .zip files as well as subdirectories within the process directory
 - Full logging to track which assets are moving where
 - All asset categories tracked and counted
 - Failed assets are backed up to be reviewed at a later time
@@ -130,9 +131,11 @@ to start AA.
 
 - Additional media server support
 
-- Add support for .zip files
-
 - Add more notifications options
+
+- Docker support (hopefully)
+
+- A web UI (wishful thinking)
 
 ## Disclaimer
 
