@@ -17,7 +17,7 @@ def discord(summary, discord_webhook, version, total_runtime):
 
     response = requests.post(discord_webhook, json={"embeds": [embed]})
 
-def summary(moved_counts, backup_enabled, total_runtime, version):
+def generate_summary(moved_counts, backup_enabled, total_runtime, version):
     summary = f"**Movie Assets:**\n {moved_counts['movies_dir']}\n"
     summary += f"**Show Assets:**\n {moved_counts['shows_dir']}\n"
     summary += f"**Collection Assets:**\n {moved_counts['collections_dir']}\n"
