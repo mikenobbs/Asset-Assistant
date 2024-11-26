@@ -1,3 +1,4 @@
+import argparse
 import os
 import PIL.Image
 import platform
@@ -14,33 +15,79 @@ from modules.notifications import discord, generate_summary
 
 logger = MyLogger()
 
-## start ##
-start_time = time.time()
-with open("VERSION", "r") as f:
-    version = f.read().strip()
+##define banner
+def print_banner(version):
+    """Print the Asset Assistant banner and version."""
     logger.separator()
-    logger.info_center("     _                 _      _            _     _              _    ") 
-    logger.info_center("    / \   ___ ___  ___| |_   / \   ___ ___(_)___| |_ __ _ _ __ | |_  ")
-    logger.info_center("   / _ \ / __/ __|/ _ \ __| / _ \ / __/ __| / __| __/ _` | '_ \| __| ")
+    logger.info_center(r"     _                 _      _            _     _              _    ") 
+    logger.info_center(r"    / \   ___ ___  ___| |_   / \   ___ ___(_)___| |_ __ _ _ __ | |_  ")
+    logger.info_center(r"   / _ \ / __/ __|/ _ \ __| / _ \ / __/ __| / __| __/ _` | '_ \| __| ")
     logger.info_center(r" / ___ \\__ \__ \  __/ |_ / ___ \\__ \__ \ \__ \ || (_| | | | | |_  ")
-    logger.info_center(" /_/   \_\___/___/\___|\__/_/   \_\___/___/_|___/\__\__,_|_| |_|\__| ")
+    logger.info_center(r" /_/   \_\___/___/\___|\__/_/   \_\___/___/_|___/\__\__,_|_| |_|\__| ")
     logger.info("")
     logger.info("")
     logger.info(f" Version: v{version}")
+
+
+## start ##
+parser = argparse.ArgumentParser(description='Asset Assistant')
+parser.add_argument('--version', action='store_true', help='Print version and exit')
+args = parser.parse_args()
+
+start_time = time.time()
+with open("VERSION", "r") as f:
+    version = f.read().strip()
+
+if args.version:
+    print_banner(version)
+    sys.exit(0)
+
+print_banner(version)
 platform_info = platform.platform()
 logger.info(f" Platform: {platform.platform()}")
 logger.separator(text="Asset Assistant Starting", debug=False)
 
-## load config ##  
-try:
-    with open('config.yml', 'r') as f:
-        config = yaml.safe_load(f)
-        logger.info(" Loading config.yml...")
-        logger.info(" Config loaded successfully")
-        logger.separator(text="Config", space=False, border=False, debug=True)
-except FileNotFoundError:
-    logger.error(f" Config file 'config.yml' not found at {os.path.dirname(os.path.abspath(__file__))}. Terminating script.")
-    sys.exit(1)
+## load config from file system##  
+config_paths = [
+    os.path.join('config', 'config.yml'),  # /config/config.yml
+    'config.yml'  # ./config.yml
+]
+
+config = None
+for config_path in config_paths:
+    try:
+        with open(config_path, 'r') as f:
+            config = yaml.safe_load(f)
+            logger.info(f" Loading {config_path}...")
+            logger.info(" Config loaded successfully")
+            logger.separator(text="Config", space=False, border=False, debug=True)
+            break  # Exit loop if config loaded successfully
+    except FileNotFoundError:
+        continue  # Try next path if file not found
+
+## load config from ENV VARS ##
+def load_config_from_env():
+    """Load configuration from environment variables with defaults."""
+    return {
+        'process_dir': os.getenv('PROCESSDIR', '/config/process'),
+        'shows_dir': os.getenv('SHOWSDIR', '/config/shows'),
+        'movies_dir': os.getenv('MOVIESDIR', '/config/movies'),
+        'collections_dir': os.getenv('COLLECTIONSDIR', '/config/collections'),
+        'discord_webhook': os.getenv('DISCORD_WEBHOOK', ''),
+        'discord_enabled': os.getenv('DISCORD_ENABLED', 'false').lower() == 'true',
+        'debug': os.getenv('DEBUG', 'false').lower() == 'true'
+    }
+
+
+if config is None:
+    logger.warning(" Config file not found. Tried: {', '.join(config_paths)}")
+    logger.info(" Falling back to environment variables...")
+    config = load_config_from_env()
+    if not config.get('process_dir'):
+        logger.error(" No configuration found in files or environment")
+        logger.error(f" Current directory: {os.path.dirname(os.path.abspath(__file__))}")
+        sys.exit(1)
+    logger.info(" Configuration loaded from environment variables")
 
 ## paths ##
 process_dir = config['process']
