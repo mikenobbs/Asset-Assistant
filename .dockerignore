@@ -1,5 +1,5 @@
 .dockerignore
-.gitignore
+.github
 Dockerfile
 LICENSE
 logo
