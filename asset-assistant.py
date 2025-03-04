@@ -58,21 +58,22 @@ for config_path in config_paths:
     try:
         with open(config_path, 'r') as f:
             config = yaml.safe_load(f)
-            logger.info(f" Loading {config_path}...")
-            logger.info(" Config loaded successfully")
-            logger.separator(text="Config", space=False, border=False, debug=True)
-            break  # Exit loop if config loaded successfully
+            logger.info(f" Configuration loaded from {config_path}")
+            break
     except FileNotFoundError:
-        continue  # Try next path if file not found
+        continue
 
 ## load config from ENV VARS ##
 def load_config_from_env():
     """Load configuration from environment variables with defaults."""
     return {
-        'process_dir': os.getenv('PROCESSDIR', '/config/process'),
-        'shows_dir': os.getenv('SHOWSDIR', '/config/shows'),
-        'movies_dir': os.getenv('MOVIESDIR', '/config/movies'),
-        'collections_dir': os.getenv('COLLECTIONSDIR', '/config/collections'),
+        'process': os.getenv('PROCESSDIR', '/config/process'),
+        'shows': os.getenv('SHOWSDIR', '/config/shows'),
+        'movies': os.getenv('MOVIESDIR', '/config/movies'),
+        'collections': os.getenv('COLLECTIONSDIR', '/config/collections'),
+        'failed': os.getenv('FAILEDDIR', '/config/failed'),
+        'backup': os.getenv('BACKUPDIR', '/config/backup'),
+        'enable_backup': os.getenv('ENABLE_BACKUP', 'false').lower() == 'true',
         'discord_webhook': os.getenv('DISCORD_WEBHOOK', ''),
         'discord_enabled': os.getenv('DISCORD_ENABLED', 'false').lower() == 'true',
         'debug': os.getenv('DEBUG', 'false').lower() == 'true'
@@ -80,14 +81,15 @@ def load_config_from_env():
 
 
 if config is None:
-    logger.warning(" Config file not found. Tried: {', '.join(config_paths)}")
+    logger.warning(f" Config file not found. Tried: {', '.join(config_paths)}")
     logger.info(" Falling back to environment variables...")
     config = load_config_from_env()
-    if not config.get('process_dir'):
-        logger.error(" No configuration found in files or environment")
-        logger.error(f" Current directory: {os.path.dirname(os.path.abspath(__file__))}")
-        sys.exit(1)
     logger.info(" Configuration loaded from environment variables")
+
+if config is None:
+    logger.error(" No configuration found in files or environment")
+    logger.error(f" Current directory: {os.getcwd()}")
+    sys.exit(1)
 
 ## paths ##
 process_dir = config['process']
@@ -95,9 +97,9 @@ movies_dir = config['movies']
 shows_dir = config['shows']
 collections_dir = config['collections']
 script_dir = os.path.dirname(os.path.abspath(__file__))
-failed_dir = os.path.join(script_dir, 'failed')
+failed_dir = config['failed']
+backup_dir = config['backup']
 backup_enabled = config.get('enable_backup', False)
-backup_dir = os.path.join(script_dir, 'backup')
 service = config.get('service', None)
 plex_specials = config.get('plex_specials', None)
 
@@ -319,7 +321,6 @@ def copy_and_rename(filename, category, season_number, episode_number, movies_di
     directory = None
 
     if category == 'movie' or category == 'show':
-        # Movie and show handling - no changes needed
         directory = movies_dir if category == 'movie' else shows_dir
         for dir_name in os.listdir(directory):
             if filename.split('.')[0].lower() in dir_name.lower():
@@ -337,7 +338,6 @@ def copy_and_rename(filename, category, season_number, episode_number, movies_di
                 return category
                 
     elif category == 'collection':
-        # Collection handling - no changes needed
         directory = collections_dir
         for dir_name in os.listdir(directory):
             if filename.split('.')[0].lower().replace("collection", "").strip() in dir_name.lower():
@@ -356,7 +356,6 @@ def copy_and_rename(filename, category, season_number, episode_number, movies_di
                     
     # Service-specific handling
     elif service == 'kometa':
-        # Kometa handling - no changes needed
         if category == 'season':
             directory = shows_dir
             for dir_name in os.listdir(directory):

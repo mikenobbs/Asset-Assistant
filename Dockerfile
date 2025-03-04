@@ -6,6 +6,9 @@ ENV PROCESSDIR=/config/process
 ENV SHOWSDIR=/config/shows
 ENV MOVIESDIR=/config/movies
 ENV COLLECTIONSDIR=/config/collections
+ENV FAILEDDIR=/config/failed
+ENV BACKUPDIR=/config/backup
+ENV ENABLE_BACKUP=false
 COPY requirements.txt requirements.txt
 RUN echo "**** install system packages ****" \
  && apt-get update \
@@ -22,6 +25,7 @@ RUN echo "**** install system packages ****" \
  && apt-get -f install \
  && apt-get autoclean \
  && rm -rf /requirements.txt /tmp/* /var/tmp/* /var/lib/apt/lists/*
+RUN mkdir -p /config /config/process /config/shows /config/movies /config/collections /config/failed /config/backup
 COPY . /
 VOLUME /config
 ENTRYPOINT ["/tini", "-s", "python3", "asset-assistant.py", "--"]
