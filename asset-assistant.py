@@ -277,9 +277,13 @@ def categories(filename, movies_dir, shows_dir):
     elif specials_match:
         if service:
             category = 'season'
+            season_number = None  # Explicitly set to None for specials
             if show_name:
-                expected_dir = f"{show_name} ({show_year})/Specials"
+                # Just check if the show directory exists, not the specials directory
+                expected_dir = f"{show_name} ({show_year})"
+                logger.debug(f" Looking for show directory for specials: {expected_dir}")
                 if not os.path.exists(os.path.join(shows_dir, expected_dir)):
+                    logger.debug(f" Show directory not found for specials: {expected_dir}")
                     category = None
         else:
             category = 'skip'
