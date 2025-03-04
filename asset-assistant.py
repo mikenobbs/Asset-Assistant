@@ -260,6 +260,7 @@ def categories(filename, movies_dir, shows_dir):
     if show_match:
         show_name = show_match.group(1).strip()
         show_year = show_match.group(2).strip()
+        logger.debug(f" Extracted show name: '{show_name}', year: '{show_year}'")
     
     if season_match:
         if service:
@@ -293,9 +294,31 @@ def categories(filename, movies_dir, shows_dir):
             category = 'episode'
             season_number = episode_match.group(1)
             episode_number = episode_match.group(2)
+            
+            # Log exact episode details for debugging
+            logger.debug(f" Found episode S{season_number}E{episode_number}")
+            
             if show_name:
-                expected_dir = f"{show_name} ({show_year})"
-                if not os.path.exists(os.path.join(shows_dir, expected_dir)):
+                # Try multiple matching strategies
+                exact_match = f"{show_name} ({show_year})"
+                found = False
+                
+                # Try exact match first
+                for dir_name in os.listdir(shows_dir):
+                    if dir_name.lower() == exact_match.lower():
+                        found = True
+                        break
+                
+                # If no exact match, try without year
+                if not found:
+                    for dir_name in os.listdir(shows_dir):
+                        if dir_name.lower().startswith(show_name.lower()):
+                            found = True
+                            logger.debug(f" Using partial match: '{show_name}' -> '{dir_name}'")
+                            break
+                
+                if not found:
+                    logger.debug(f" Could not find directory for '{show_name} ({show_year})'")
                     category = None
         else:
             category = 'skip'
@@ -647,12 +670,23 @@ process_directories(process_dir)
 # Add a list of supported image extensions
 supported_extensions = ('.jpg', '.jpeg', '.png')
 
+# Get a stable snapshot of files before processing begins
+files_to_process = []
 for filename in os.listdir(process_dir):
-    # Only process files with supported image extensions
-    if not filename.lower().endswith(supported_extensions):
+    file_path = os.path.join(process_dir, filename)
+    # Only include files (not directories) with supported extensions
+    if os.path.isfile(file_path) and filename.lower().endswith(supported_extensions):
+        files_to_process.append(filename)
+    elif os.path.isfile(file_path):  # Handle non-image files
         logger.info(f" Skipping non-image file: {filename}")
-        # Optionally move non-image files to failed directory
         move_to_failed(filename, process_dir, failed_dir)
+
+logger.info(f" Found {len(files_to_process)} images to process")
+
+# Now process all files in the stable snapshot
+for filename in files_to_process:
+    if not os.path.exists(os.path.join(process_dir, filename)):
+        logger.warning(f" File disappeared during processing: {filename}")
         continue
         
     category, season_number, episode_number = categories(filename, movies_dir, shows_dir)
