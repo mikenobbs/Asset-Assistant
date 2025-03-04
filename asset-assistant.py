@@ -336,29 +336,67 @@ def categories(filename, movies_dir, shows_dir):
     
 # copy and rename #
 def copy_and_rename(filename, category, season_number, episode_number, movies_dir, shows_dir, collections_dir, process_dir, failed_dir, service):
-    # Remove redundant call - parameters are already passed in
-    src = os.path.join(process_dir, filename)
-    dest = None
-    new_dest = None
-    directory = None
-
+    # Fix the matching logic for movies and shows
+    
     if category == 'movie' or category == 'show':
         directory = movies_dir if category == 'movie' else shows_dir
-        for dir_name in os.listdir(directory):
-            if filename.split('.')[0].lower() in dir_name.lower():
-                dest = os.path.join(directory, dir_name, filename)
-                shutil.copy(src, dest)
-                logger.info(f" {filename}:")
-                logger.info(f" - Category: {category.capitalize()}")
-                logger.info(f" - Copied to {dir_name}")
-                with PIL.Image.open(dest) as img:
-                    width, height = img.size
-                    new_name = "poster" + os.path.splitext(filename)[1] if height > width else "background" + os.path.splitext(filename)[1]
-                    new_dest = os.path.join(directory, dir_name, new_name)
-                    os.rename(dest, new_dest)
-                    logger.info(f" - Renamed {new_name}")
-                return category
-                
+        
+        # Extract movie/show name and year if available
+        name_year_match = re.match(r'(.+)\s\((\d{4})\)', filename, re.IGNORECASE)
+        
+        if name_year_match:
+            # Use strict matching with name and year
+            file_name = name_year_match.group(1).strip().lower()
+            file_year = name_year_match.group(2)
+            
+            best_match = None
+            
+            for dir_name in os.listdir(directory):
+                # Check for exact match with year first
+                dir_match = re.match(r'(.+)\s\((\d{4})\)', dir_name, re.IGNORECASE)
+                if dir_match:
+                    dir_title = dir_match.group(1).strip().lower()
+                    dir_year = dir_match.group(2)
+                    
+                    # First try exact match with year
+                    if file_name == dir_title and file_year == dir_year:
+                        best_match = dir_name
+                        break
+            
+            # If no exact match found, fall back to less strict matching
+            if not best_match:
+                for dir_name in os.listdir(directory):
+                    if file_name in dir_name.lower():
+                        best_match = dir_name
+                        logger.warning(f" - Using partial match: '{file_name}' -> '{dir_name}'")
+                        break
+        else:
+            # Fall back to simple matching for files without year
+            best_match = None
+            file_name_simple = filename.split('.')[0].lower()
+            
+            for dir_name in os.listdir(directory):
+                if file_name_simple == dir_name.lower().split('(')[0].strip():
+                    best_match = dir_name
+                    break
+            
+            # Last resort - partial match
+            if not best_match:
+                for dir_name in os.listdir(directory):
+                    if file_name_simple in dir_name.lower():
+                        best_match = dir_name
+                        logger.warning(f" - Using partial match: '{file_name_simple}' -> '{dir_name}'")
+                        break
+        
+        # Process the matched directory
+        if best_match:
+            dest = os.path.join(directory, best_match, filename)
+            shutil.copy(src, dest)
+            logger.info(f" {filename}:")
+            logger.info(f" - Category: {category.capitalize()}")
+            logger.info(f" - Copied to {best_match}")
+            
+            # Continue with the rest of the function as before...
     elif category == 'collection':
         directory = collections_dir
         for dir_name in os.listdir(directory):
