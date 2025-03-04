@@ -238,7 +238,8 @@ def process_directories(process_dir):
 
 ## define categories ##
 def categories(filename, movies_dir, shows_dir):
-    season_pattern = re.compile(r'Season\s+(\d+)', re.IGNORECASE)
+    # Update the season pattern to handle hyphenated format like "Show (Year) - Season X"
+    season_pattern = re.compile(r'(?:^|\s|-)\s*Season\s+(\d+)', re.IGNORECASE)
     episode_pattern = re.compile(r'S(\d+)[\s\.]?E(\d+)', re.IGNORECASE)
     specials_pattern = re.compile(r'Specials', re.IGNORECASE)
     show_pattern = re.compile(r'(.+)\s\((\d{4})\)', re.IGNORECASE)
@@ -263,7 +264,9 @@ def categories(filename, movies_dir, shows_dir):
             season_number = season_match.group(1)
             if show_name:
                 expected_dir = f"{show_name} ({show_year})"
+                logger.debug(f" Looking for show directory: {expected_dir}")
                 if not os.path.exists(os.path.join(shows_dir, expected_dir)):
+                    logger.debug(f" Show directory not found for: {expected_dir}")
                     category = None
         else:
             category = 'skip'
