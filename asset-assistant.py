@@ -203,11 +203,23 @@ def unzip_files(process_dir):
     for item in os.listdir(process_dir):
         if item.lower().endswith('.zip'):
             file_path = os.path.join(process_dir, item)
-            with zipfile.ZipFile(file_path, 'r') as zip_ref:
-                zip_ref.extractall(process_dir)
-            os.remove(file_path)
-            logger.info(f" Processing '{item}'")
-            logger.info("")
+            try:
+                logger.info(f" Processing zip file '{item}'")
+                with zipfile.ZipFile(file_path, 'r') as zip_ref:
+                    zip_ref.extractall(process_dir)
+                os.remove(file_path)
+                logger.info(" - Successfully extracted")
+                logger.info("")
+            except zipfile.BadZipFile:
+                logger.error(f" - '{item}' is not a valid zip file")
+                move_to_failed(item, process_dir, failed_dir)
+                logger.info(" - Moved to failed directory")
+                logger.info("")
+            except Exception as e:
+                logger.error(f" - Error extracting '{item}': {str(e)}")
+                move_to_failed(item, process_dir, failed_dir)
+                logger.info(" - Moved to failed directory")
+                logger.info("")
 
 ## process subdirectories ##
 def process_directories(process_dir):
@@ -571,7 +583,7 @@ def backup(filename, process_dir, backup_dir):
     except PermissionError:
         logger.error(" - Permission denied when backing up")
     except Exception as e:
-        logger.error(" - Failed to backup to backup directory: {e}")
+        logger.error(f" - Failed to backup to backup directory: {e}")
 
 ## track assets ##
 copied_files = []
@@ -631,4 +643,4 @@ version_file = os.path.join(os.path.dirname(__file__), 'VERSION')
 with open(version_file, 'r') as f:
     version = f.read().strip()
 
-logger.separator(text=f'Asset Assistant Finished\nTotal runtime {total_runtime:2f} seconds', debug=False, border=True)
+logger.separator(text=f'Asset Assistant Finished\nTotal runtime {total_runtime:.2f} seconds', debug=False, border=True)

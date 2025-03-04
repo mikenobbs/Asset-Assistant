@@ -126,6 +126,21 @@ From the script directory, run
 ```
 to start AA.
 
+## Docker testing
+
+First build the image
+`docker build -t asset-assistant .`
+Run the image
+```docker run --rm \
+-e "ENABLE_BACKUP=true" \
+-v "/home/user/Asset-Assistant/process:/config/process" \
+-v "/home/user/.docker/kometa/assets/tvshows:/config/shows" \
+-v "/home/user/.docker/kometa/assets/movies:/config/movies" \
+-v "/home/user/.docker/kometa/assets/z_ass:/config/collections" \
+-v "/home/user/Asset-Assistant/failed:/config/failed" \
+-v "/home/user/Asset-Assistant/backup:/config/backup" \
+asset-assistant```
+
 ## Roadmap
 
 - Additional media server support
