@@ -589,13 +589,72 @@ def copy_and_rename(filename, category, season_number, episode_number, movies_di
             show_dir = None
             matching_dir_name = None
             
-            # Find matching show directory first
-            for dir_name in os.listdir(directory):
-                if filename.split(')')[0].strip().lower() in dir_name.split(')')[0].strip().lower():
-                    show_dir = os.path.join(directory, dir_name)
-                    matching_dir_name = dir_name
-                    break  # Exit loop once match is found
+            # First, extract show name from filename
+            show_match = re.match(r'(.+?)\s*(?:-|S\d+)', filename, re.IGNORECASE)
+            if show_match:
+                file_show_name = show_match.group(1).strip()
+                logger.debug(f" Looking for show directory matching: '{file_show_name}'")
+            else:
+                file_show_name = filename.split('.')[0]
+                logger.debug(f" Could not parse show name, using: '{file_show_name}'")
             
+            # Find matching show directory with improved logic
+            best_match = None
+            exact_matches = []
+            partial_matches = []
+            
+            # Collect potential matches
+            for dir_name in os.listdir(directory):
+                # Check for exact title match
+                if file_show_name.lower() == dir_name.lower().split('(')[0].strip():
+                    exact_matches.append(dir_name)
+                # Check for partial match
+                elif file_show_name.lower() in dir_name.lower():
+                    partial_matches.append(dir_name)
+            
+            # Prioritize exact matches
+            if exact_matches:
+                # First try to find US version among exact matches
+                for match in exact_matches:
+                    if "(US)" in match or "(USA)" in match:
+                        best_match = match
+                        logger.debug(f" Found US version exact match: '{match}'")
+                        break
+                        
+                # If no US version, use first exact match
+                if not best_match and exact_matches:
+                    best_match = exact_matches[0]
+                    logger.debug(f" Using best exact match: '{best_match}'")
+            
+            # Fall back to partial matches if needed
+            elif partial_matches:
+                # Try to find US version among partial matches
+                for match in partial_matches:
+                    if "(US)" in match or "(USA)" in match:
+                        best_match = match
+                        logger.debug(f" Found US version partial match: '{match}'")
+                        break
+                        
+                # If no US version, use first partial match
+                if not best_match and partial_matches:
+                    best_match = partial_matches[0]
+                    logger.debug(f" Using best partial match: '{best_match}'")
+            
+            # Use the best match if found
+            if best_match:
+                show_dir = os.path.join(directory, best_match)
+                matching_dir_name = best_match
+                logger.debug(f" Selected show directory: '{matching_dir_name}'")
+            else:
+                move_to_failed(filename, process_dir, failed_dir)
+                logger.info(f" {filename}:")
+                logger.info(" - Category: Episode")
+                logger.error(" - No matching show directory found")
+                logger.info(" - Moved to failed directory")
+                logger.info("")
+                return 'failed'
+            
+            # Rest of the existing episode handling logic...
             # Only proceed if a matching directory was found
             if show_dir:
                 episode_match = re.match(r'.*S(\d+)[\s\.]?E(\d+)', filename, re.IGNORECASE)
