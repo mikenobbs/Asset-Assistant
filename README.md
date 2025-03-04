@@ -130,7 +130,8 @@ to start AA.
 
 First build the image
 `docker build -t asset-assistant .`
-Run the image
+
+Run the image with
 ```
 docker run --rm \
 -e "ENABLE_BACKUP=true" \
