@@ -512,18 +512,27 @@ def copy_and_rename(filename, category, season_number, episode_number, movies_di
 
         elif category == 'episode':
             directory = shows_dir
+            # For Kometa, we just need to find the show directory by name
+            # No need for video file matching
             for dir_name in os.listdir(directory):
-                if filename.split(')')[0].strip().lower() in dir_name.split(')')[0].strip().lower():
-                    dest = os.path.join(directory, dir_name, filename)
-                    shutil.copy(src, dest)
-                    logger.info(f" {filename}:")
-                    logger.info(f" - Category: {category.capitalize()}")
-                    logger.info(f" - Copied to {dir_name}")
-                    new_name = f"S{season_number.zfill(2)}E{episode_number.zfill(2)}" + os.path.splitext(filename)[1]
-                    new_dest = os.path.join(directory, dir_name, new_name)
-                    os.rename(dest, new_dest)
-                    logger.info(f" - Renamed {new_name}")
-                    return category
+                # Extract show name for better matching
+                show_match = re.match(r'(.+?)\s*(?:\(|S\d+|$)', filename, re.IGNORECASE)
+                if show_match:
+                    file_show_name = show_match.group(1).strip().lower()
+                    dir_show_name = dir_name.split('(')[0].strip().lower()
+                    
+                    # Check if show names match
+                    if file_show_name in dir_show_name or dir_show_name in file_show_name:
+                        dest = os.path.join(directory, dir_name, filename)
+                        shutil.copy(src, dest)
+                        logger.info(f" {filename}:")
+                        logger.info(f" - Category: {category.capitalize()}")
+                        logger.info(f" - Copied to {dir_name}")
+                        new_name = f"S{season_number.zfill(2)}E{episode_number.zfill(2)}" + os.path.splitext(filename)[1]
+                        new_dest = os.path.join(directory, dir_name, new_name)
+                        os.rename(dest, new_dest)
+                        logger.info(f" - Renamed {new_name}")
+                        return category
                     
     elif service == 'plex':
         if category == 'season':
