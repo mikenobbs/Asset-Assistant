@@ -336,7 +336,8 @@ def categories(filename, movies_dir, shows_dir):
     
 # copy and rename #
 def copy_and_rename(filename, category, season_number, episode_number, movies_dir, shows_dir, collections_dir, process_dir, failed_dir, service):
-    # Fix the matching logic for movies and shows
+    # Define the source path at the beginning of the function
+    src = os.path.join(process_dir, filename)
     
     if category == 'movie' or category == 'show':
         directory = movies_dir if category == 'movie' else shows_dir
