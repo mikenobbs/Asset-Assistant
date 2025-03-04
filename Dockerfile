@@ -9,6 +9,9 @@ ENV COLLECTIONSDIR=/config/collections
 ENV FAILEDDIR=/config/failed
 ENV BACKUPDIR=/config/backup
 ENV ENABLE_BACKUP=false
+ENV PUID=1000
+ENV PGID=1000
+
 COPY requirements.txt requirements.txt
 RUN echo "**** install system packages ****" \
  && apt-get update \
@@ -25,7 +28,23 @@ RUN echo "**** install system packages ****" \
  && apt-get -f install \
  && apt-get autoclean \
  && rm -rf /requirements.txt /tmp/* /var/tmp/* /var/lib/apt/lists/*
-RUN mkdir -p /config /config/process /config/shows /config/movies /config/collections /config/failed /config/backup
-COPY . /
+
+# Create a non-root user and group
+RUN groupadd -g ${PGID} appuser \
+ && useradd -u ${PUID} -g appuser -s /bin/bash -m appuser
+
+# Create directories and set proper permissions
+RUN mkdir -p /config /config/process /config/shows /config/movies /config/collections /config/failed /config/backup \
+ && chown -R appuser:appuser /config
+
+# Copy application files
+COPY --chown=appuser:appuser . /app
+
+# Set working directory
+WORKDIR /app
+
+# Switch to the non-root user
+USER appuser
+
 VOLUME /config
-ENTRYPOINT ["/tini", "-s", "python3", "asset-assistant.py", "--"]
+ENTRYPOINT ["/tini", "-s", "python3", "/app/asset-assistant.py", "--"]
