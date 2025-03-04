@@ -19,11 +19,16 @@ class MyLogger:
             return super().format(record)
 
     def __init__(self, separating_character='=', screen_width=100, log_file='assistant.log'):
-        parent_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        # Get logs directory from config
+        if 'config' in globals() and config.get('logs'):
+            self.log_dir = config['logs']
+        else:
+            parent_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+            self.log_dir = os.path.join(parent_dir, 'logs')
+        
+        os.makedirs(self.log_dir, exist_ok=True)
         self.separating_character = separating_character
         self.screen_width = screen_width
-        self.log_dir = os.path.join(parent_dir, 'logs')
-        os.makedirs(self.log_dir, exist_ok=True)
         self.log_file = os.path.join(self.log_dir, log_file)
         self.logger = logging.getLogger(__name__)
         self.logger.setLevel(logging.DEBUG)

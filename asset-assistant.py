@@ -73,6 +73,7 @@ def load_config_from_env():
         'collections': os.getenv('COLLECTIONSDIR', '/config/collections'),
         'failed': os.getenv('FAILEDDIR', '/config/failed'),
         'backup': os.getenv('BACKUPDIR', '/config/backup'),
+        'logs': os.getenv('LOGSDIR', '/config/logs'),
         'enable_backup': os.getenv('ENABLE_BACKUP', 'false').lower() == 'true',
         'service': os.getenv('SERVICE', ''),
         'plex_specials': None if os.getenv('PLEX_SPECIALS', '') == '' else os.getenv('PLEX_SPECIALS', '').lower() == 'true',

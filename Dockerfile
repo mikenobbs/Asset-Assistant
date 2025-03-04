@@ -8,6 +8,7 @@ ENV MOVIESDIR=/config/movies
 ENV COLLECTIONSDIR=/config/collections
 ENV FAILEDDIR=/config/failed
 ENV BACKUPDIR=/config/backup
+ENV LOGSDIR=/config/logs
 ENV ENABLE_BACKUP=false
 ENV SERVICE=
 ENV PLEX_SPECIALS=
@@ -36,7 +37,7 @@ RUN groupadd -g ${PGID} appuser \
  && useradd -u ${PUID} -g appuser -s /bin/bash -m appuser
 
 # Create directories and set proper permissions
-RUN mkdir -p /config /config/process /config/shows /config/movies /config/collections /config/failed /config/backup \
+RUN mkdir -p /config /config/process /config/shows /config/movies /config/collections /config/failed /config/backup /config/logs \
  && chown -R appuser:appuser /config
 
 # Copy application files
