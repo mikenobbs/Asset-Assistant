@@ -299,29 +299,81 @@ def categories(filename, movies_dir, shows_dir):
             logger.debug(f" Found episode S{season_number}E{episode_number}")
             
             if show_name:
-                # Try multiple matching strategies
+                # Try multiple matching strategies with country preference
                 exact_match = f"{show_name} ({show_year})"
-                found = False
+                matching_dirs = []
                 
-                # Try exact match first
+                # Step 1: Collect all possible matches with year
                 for dir_name in os.listdir(shows_dir):
-                    if dir_name.lower() == exact_match.lower():
-                        found = True
-                        break
+                    dir_show_match = re.match(r'(.+)\s\((\d{4})\)', dir_name, re.IGNORECASE)
+                    if dir_show_match:
+                        dir_show_name = dir_show_match.group(1).strip().lower()
+                        dir_show_year = dir_show_match.group(2)
+                        
+                        # Check if show names match
+                        if dir_show_name.startswith(show_name.lower()):
+                            matching_dirs.append(dir_name)
                 
-                # If no exact match, try without year
-                if not found:
+                best_match = None
+                
+                # Step 2: If multiple matches, prioritize exact match first, then US version
+                if len(matching_dirs) > 1:
+                    # First look for exact match with year
+                    for match_dir in matching_dirs:
+                        if match_dir.lower() == exact_match.lower():
+                            best_match = match_dir
+                            logger.debug(f" Using exact match: '{match_dir}'")
+                            break
+                    
+                    # If no exact match found, look for US version
+                    if not best_match:
+                        for match_dir in matching_dirs:
+                            if "(US)" in match_dir or "(USA)" in match_dir:
+                                best_match = match_dir
+                                logger.debug(f" Prioritizing US version: '{match_dir}'")
+                                break
+                
+                # Step 3: If still no match, prioritize closest year match
+                if not best_match:
+                    closest_year_diff = 9999
+                    for match_dir in matching_dirs:
+                        dir_year_match = re.search(r'\((\d{4})\)', match_dir)
+                        if dir_year_match:
+                            dir_year = int(dir_year_match.group(1))
+                            year_diff = abs(int(show_year) - dir_year)
+                            if year_diff < closest_year_diff:
+                                closest_year_diff = year_diff
+                                best_match = match_dir
+                
+                # Step 4: If only one match, use it
+                elif len(matching_dirs) == 1:
+                    best_match = matching_dirs[0]
+                
+                # Step 5: If no matches found by year, try partial match as last resort
+                if not best_match:
                     for dir_name in os.listdir(shows_dir):
-                        if dir_name.lower().startswith(show_name.lower()):
-                            found = True
+                        if show_name.lower() in dir_name.lower():
+                            if "(AU)" in dir_name or "(UK)" in dir_name or "(CA)" in dir_name:
+                                # Skip non-US versions in partial matching unless it's the only option
+                                continue
+                            best_match = dir_name
                             logger.debug(f" Using partial match: '{show_name}' -> '{dir_name}'")
                             break
+                    
+                    # If still nothing, accept any partial match including non-US versions
+                    if not best_match:
+                        for dir_name in os.listdir(shows_dir):
+                            if show_name.lower() in dir_name.lower():
+                                best_match = dir_name
+                                logger.warning(f" Using non-US partial match: '{show_name}' -> '{dir_name}'")
+                                break
+                
+                # Check if we found any match at all
+                found = best_match is not None
                 
                 if not found:
                     logger.debug(f" Could not find directory for '{show_name} ({show_year})'")
                     category = None
-        else:
-            category = 'skip'
     
     else:
         for dir_name in os.listdir(collections_dir):
