@@ -605,14 +605,23 @@ unzip_files(process_dir)
 
 process_directories(process_dir)
 
+# Add a list of supported image extensions
+supported_extensions = ('.jpg', '.jpeg', '.png')
+
 for filename in os.listdir(process_dir):
+    # Only process files with supported image extensions
+    if not filename.lower().endswith(supported_extensions):
+        logger.info(f" Skipping non-image file: {filename}")
+        # Optionally move non-image files to failed directory
+        move_to_failed(filename, process_dir, failed_dir)
+        continue
+        
     category, season_number, episode_number = categories(filename, movies_dir, shows_dir)
     if category in ['movie', 'show', 'season', 'episode', 'collection']:
         updated_category = copy_and_rename(filename, category, season_number, episode_number, movies_dir, shows_dir, collections_dir, process_dir, failed_dir, service)
         if updated_category != 'failed':
             if backup_enabled:
                 backup(filename, process_dir, backup_dir)
-                #logger.info("")
             else:
                 try:
                     os.remove(os.path.join(process_dir, filename))
