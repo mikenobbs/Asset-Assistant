@@ -74,6 +74,8 @@ def load_config_from_env():
         'failed': os.getenv('FAILEDDIR', '/config/failed'),
         'backup': os.getenv('BACKUPDIR', '/config/backup'),
         'enable_backup': os.getenv('ENABLE_BACKUP', 'false').lower() == 'true',
+        'service': os.getenv('SERVICE', ''),
+        'plex_specials': None if os.getenv('PLEX_SPECIALS', '') == '' else os.getenv('PLEX_SPECIALS', '').lower() == 'true',
         'discord_webhook': os.getenv('DISCORD_WEBHOOK', ''),
         'discord_enabled': os.getenv('DISCORD_ENABLED', 'false').lower() == 'true',
         'debug': os.getenv('DEBUG', 'false').lower() == 'true'
