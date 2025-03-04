@@ -312,13 +312,14 @@ def categories(filename, movies_dir, shows_dir):
     
 # copy and rename #
 def copy_and_rename(filename, category, season_number, episode_number, movies_dir, shows_dir, collections_dir, process_dir, failed_dir, service):
-    category, season_number, episode_number = categories(filename, movies_dir, shows_dir)
+    # Remove redundant call - parameters are already passed in
     src = os.path.join(process_dir, filename)
     dest = None
     new_dest = None
     directory = None
 
     if category == 'movie' or category == 'show':
+        # Movie and show handling - no changes needed
         directory = movies_dir if category == 'movie' else shows_dir
         for dir_name in os.listdir(directory):
             if filename.split('.')[0].lower() in dir_name.lower():
@@ -336,6 +337,7 @@ def copy_and_rename(filename, category, season_number, episode_number, movies_di
                 return category
                 
     elif category == 'collection':
+        # Collection handling - no changes needed
         directory = collections_dir
         for dir_name in os.listdir(directory):
             if filename.split('.')[0].lower().replace("collection", "").strip() in dir_name.lower():
@@ -352,13 +354,9 @@ def copy_and_rename(filename, category, season_number, episode_number, movies_di
                     logger.info(f" - Renamed {new_name}")
                     return category
                     
-    #elif service == 'emby' 
-   
-    #elif service == 'jellyfin'
-   
-    #elif service == 'kodi'
-    
+    # Service-specific handling
     elif service == 'kometa':
+        # Kometa handling - no changes needed
         if category == 'season':
             directory = shows_dir
             for dir_name in os.listdir(directory):
@@ -395,9 +393,19 @@ def copy_and_rename(filename, category, season_number, episode_number, movies_di
     elif service == 'plex':
         if category == 'season':
             directory = shows_dir
+            show_dir = None
+            matching_dir_name = None
+            
+            # Find matching show directory first
             for dir_name in os.listdir(directory):
                 if filename.split(')')[0].strip().lower() in dir_name.split(')')[0].strip().lower():
                     show_dir = os.path.join(directory, dir_name)
+                    matching_dir_name = dir_name
+                    break  # Exit loop once match is found
+                    
+            # Only proceed if a matching directory was found
+            if show_dir:
+                # Determine season directory name
                 if season_number:
                     season_dir_name = f'Season {season_number.zfill(2)}'
                 else:
@@ -409,14 +417,20 @@ def copy_and_rename(filename, category, season_number, episode_number, movies_di
                             season_dir_name = 'Specials'
                         else:
                             season_dir_name = 'Season 00'
+                
+                # Create the season directory if it doesn't exist
                 season_dir = os.path.join(show_dir, season_dir_name)
                 if not os.path.exists(season_dir):
                     os.makedirs(season_dir)
+                    
+                # Copy the file
                 dest = os.path.join(season_dir, filename)
                 shutil.copy(src, dest)
                 logger.info(f" {filename}:")
                 logger.info(f" - Category: {category.capitalize()}")
-                logger.info(f" - Copied to {dir_name}/{season_dir_name}")
+                logger.info(f" - Copied to {matching_dir_name}/{season_dir_name}")
+                
+                # Rename the file
                 if season_number:
                     new_name = f"Season{season_number.zfill(2)}" + os.path.splitext(filename)[1]
                 else:
@@ -425,79 +439,106 @@ def copy_and_rename(filename, category, season_number, episode_number, movies_di
                 os.rename(dest, new_dest)
                 logger.info(f" - Renamed {new_name}")
                 return category
+            else:
+                # No matching directory found, move to failed
+                move_to_failed(filename, process_dir, failed_dir)
+                logger.info(f" {filename}:")
+                logger.info(" - Category: Season")
+                logger.error(" - No matching show directory found")
+                logger.info(" - Moved to failed directory")
+                logger.info("")
+                return 'failed'
                 
         elif category == 'episode':
             directory = shows_dir
+            show_dir = None
+            matching_dir_name = None
+            
+            # Find matching show directory first
             for dir_name in os.listdir(directory):
                 if filename.split(')')[0].strip().lower() in dir_name.split(')')[0].strip().lower():
                     show_dir = os.path.join(directory, dir_name)
+                    matching_dir_name = dir_name
+                    break  # Exit loop once match is found
+            
+            # Only proceed if a matching directory was found
+            if show_dir:
+                episode_match = re.match(r'.*S(\d+)[\s\.]?E(\d+)', filename, re.IGNORECASE)
+                if episode_match:
+                    season_number = episode_match.group(1)
+                    episode_number = episode_match.group(2)
+                else:
+                    move_to_failed(filename, process_dir, failed_dir)
+                    logger.info(f" {filename}:")
+                    logger.info(" - Category: Episode")
+                    logger.error(" - Failed to extract season and episode numbers")
+                    logger.info(" - Moved to failed directory")
+                    logger.info("")
+                    return 'failed'
                     
-                    episode_match = re.match(r'.*S(\d+)[\s\.]?E(\d+)', filename, re.IGNORECASE)
-                    if episode_match:
-                        season_number = episode_match.group(1)
-                        episode_number = episode_match.group(2)
+                season_number = season_number.zfill(2)
+                episode_number = episode_number.zfill(2)
+                
+                if season_number == '00':
+                    if plex_specials is None:
+                        logger.error(" 'plex_specials' is not set in the config, please set it to True or False and try again")
+                        sys.exit(1)
+                    elif plex_specials:
+                        season_dir_name = 'Specials'
                     else:
-                        move_to_failed(filename, process_dir, failed_dir)
-                        category = 'failed'
-                        logger.info(f" {filename}:")
-                        logger.info(f" - Category: {category.capitalize()}")
-                        logger.error(" - Failed to extract season and episode numbers")
-                        logger.info(" - Moved to failed directory")
-                        logger.info("")
-                        return category
-                    season_number = season_number.zfill(2)
-                    episode_number = episode_number.zfill(2)
-                    if season_number == '00':
-                        if plex_specials is None:
-                            logger.error(" 'plex_specials' is not set in the config, please set it to True or False and try again")
-                            sys.exit(1)
-                        elif plex_specials:
-                            season_dir_name = 'Specials'
-                        else:
-                            season_dir_name = 'Season 00'
-                    else:
-                        season_dir_name = f'Season {season_number.zfill(2)}'
-                    season_dir = os.path.join(show_dir, season_dir_name)
-                    if not os.path.exists(season_dir):
-                        move_to_failed(filename, process_dir, failed_dir)                       
-                        category = 'failed'
-                        logger.info(f" {filename}:")
-                        logger.info(f" - Category: {category.capitalize()}")
-                        logger.error(f" - {season_dir_name} does not exist in {dir_name}")
-                        logger.info(" - Moved to failed directory")
-                        logger.info("")
-                        return category
-                    episode_video_name = None
-                    for video_file in os.listdir(season_dir):
-                        if video_file.endswith(('.mkv', '.mp4', '.avi')):
-                            video_match = re.match(r'.*S(\d+)[\s\.]?E(\d+)', video_file, re.IGNORECASE)
-                            if video_match:
-                                video_season_number = video_match.group(1)
-                                video_episode_number = video_match.group(2)
-                                if season_number == video_season_number and episode_number == video_episode_number:
-                                    episode_video_name = os.path.splitext(video_file)[0] + os.path.splitext(filename)[1]
-                                    break
-                    if episode_video_name:
-                        new_name = episode_video_name
-                        new_dest = os.path.join(season_dir, new_name)
-                        dest = os.path.join(season_dir, filename)
-                        shutil.copy(src, dest)
-                        os.rename(dest, new_dest)
-                        logger.info(f" {filename}:")
-                        logger.info(f" - Category: {category.capitalize()}")
-                        logger.info(f" - Copied to {dir_name}/{season_dir_name}")
-                        logger.info(f" - Renamed {new_name}")
-                        return category
-                    else:
-                        move_to_failed(filename, process_dir, failed_dir)
-                        category = 'failed'
-                        logger.info(f" {filename}:")
-                        logger.info(f" - Category: {category.capitalize()}")
-                        logger.error(f" - Corresponding video file not found in {dir_name}/{season_dir_name}")
-                        logger.info(" - Moved to failed directory")
-                        logger.info("")
-                        return category
-            return category
+                        season_dir_name = 'Season 00'
+                else:
+                    season_dir_name = f'Season {season_number.zfill(2)}'
+                
+                season_dir = os.path.join(show_dir, season_dir_name)
+                if not os.path.exists(season_dir):
+                    move_to_failed(filename, process_dir, failed_dir)                       
+                    logger.info(f" {filename}:")
+                    logger.info(" - Category: Episode")
+                    logger.error(f" - {season_dir_name} does not exist in {matching_dir_name}")
+                    logger.info(" - Moved to failed directory")
+                    logger.info("")
+                    return 'failed'
+                
+                episode_video_name = None
+                for video_file in os.listdir(season_dir):
+                    if video_file.endswith(('.mkv', '.mp4', '.avi')):
+                        video_match = re.match(r'.*S(\d+)[\s\.]?E(\d+)', video_file, re.IGNORECASE)
+                        if video_match:
+                            video_season_number = video_match.group(1)
+                            video_episode_number = video_match.group(2)
+                            if season_number == video_season_number and episode_number == video_episode_number:
+                                episode_video_name = os.path.splitext(video_file)[0] + os.path.splitext(filename)[1]
+                                break
+                
+                if episode_video_name:
+                    new_name = episode_video_name
+                    new_dest = os.path.join(season_dir, new_name)
+                    dest = os.path.join(season_dir, filename)
+                    shutil.copy(src, dest)
+                    os.rename(dest, new_dest)
+                    logger.info(f" {filename}:")
+                    logger.info(" - Category: Episode")
+                    logger.info(f" - Copied to {matching_dir_name}/{season_dir_name}")
+                    logger.info(f" - Renamed {new_name}")
+                    return category
+                else:
+                    move_to_failed(filename, process_dir, failed_dir)
+                    logger.info(f" {filename}:")
+                    logger.info(" - Category: Episode")
+                    logger.error(f" - Corresponding video file not found in {matching_dir_name}/{season_dir_name}")
+                    logger.info(" - Moved to failed directory")
+                    logger.info("")
+                    return 'failed'
+            else:
+                # No matching directory found, move to failed
+                move_to_failed(filename, process_dir, failed_dir)
+                logger.info(f" {filename}:")
+                logger.info(" - Category: Episode")
+                logger.error(" - No matching show directory found")
+                logger.info(" - Moved to failed directory")
+                logger.info("")
+                return 'failed'
     else:
         move_to_failed(filename, process_dir, failed_dir)
     

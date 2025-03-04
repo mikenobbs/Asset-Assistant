@@ -22,6 +22,6 @@ RUN echo "**** install system packages ****" \
  && apt-get -f install \
  && apt-get autoclean \
  && rm -rf /requirements.txt /tmp/* /var/tmp/* /var/lib/apt/lists/*
- COPY . /
+COPY . /
 VOLUME /config
 ENTRYPOINT ["/tini", "-s", "python3", "asset-assistant.py", "--"]

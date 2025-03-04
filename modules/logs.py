@@ -1,13 +1,14 @@
 import logging, os
 from logging.handlers import RotatingFileHandler
 
+# Move this line outside the class definition
+logging.addLevelName(logging.WARNING, 'WARN')
+
 class MyLogger:
     class CustomFormatter(logging.Formatter):
         def __init__(self, screen_width, *args, **kwargs):
             super().__init__(*args, **kwargs)
             self.screen_width = screen_width
-
-        logging.addLevelName(logging.WARNING, 'WARN')
         
         def format(self, record):
             levelname = record.levelname
@@ -27,6 +28,10 @@ class MyLogger:
         self.logger = logging.getLogger(__name__)
         self.logger.setLevel(logging.DEBUG)
         
+        # Clear any existing handlers to avoid duplicates
+        if self.logger.hasHandlers():
+            self.logger.handlers.clear()
+            
         self.main_handler = self._get_handler(self.log_file)
 
         console_handler = logging.StreamHandler()
@@ -94,6 +99,9 @@ class MyLogger:
         formatter = logging.Formatter("[%(asctime)s]  [%(levelname)s]  |%(message)-{0}s|".format(self.screen_width))
         handler.setFormatter(formatter)
         if os.path.isfile(log_file):
-            self.logger.removeHandler(handler)
+            # Only attempt to remove a handler that exists
+            for existing_handler in self.logger.handlers[:]:
+                if isinstance(existing_handler, RotatingFileHandler) and existing_handler.baseFilename == handler.baseFilename:
+                    self.logger.removeHandler(existing_handler)
             handler.doRollover()
         return handler
