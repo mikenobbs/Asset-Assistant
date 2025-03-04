@@ -131,7 +131,8 @@ to start AA.
 First build the image
 `docker build -t asset-assistant .`
 Run the image
-```docker run --rm \
+```
+docker run --rm \
 -e "ENABLE_BACKUP=true" \
 -e "SERVICE=kometa" \
 -v "/home/user/Asset-Assistant/process:/config/process" \
@@ -141,7 +142,8 @@ Run the image
 -v "/home/user/Asset-Assistant/failed:/config/failed" \
 -v "/home/user/Asset-Assistant/backup:/config/backup" \
 -v "/home/user/Asset-Assistant/logs:/config/logs" \
-asset-assistant```
+asset-assistant
+```
 
 ## Roadmap
 
