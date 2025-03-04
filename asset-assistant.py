@@ -701,13 +701,13 @@ def backup(filename, process_dir, backup_dir):
     
     try:
         shutil.move(src, dest)
-        logger.info(" - Moved to backup directory")
+        logger.info(f" - Moved '{filename}' to backup directory")
     except FileNotFoundError:
-        logger.error(" - File not found during backup")
+        logger.error(f" - File '{filename}' not found during backup")
     except PermissionError:
-        logger.error(" - Permission denied when backing up")
+        logger.error(f" - Permission denied when backing up '{filename}'")
     except Exception as e:
-        logger.error(f" - Failed to backup to backup directory: {e}")
+        logger.error(f" - Failed to backup '{filename}' to backup directory: {e}")
 
 ## track assets ##
 copied_files = []
