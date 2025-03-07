@@ -306,167 +306,167 @@ def categories(filename, movies_dir, shows_dir):
         for dir_name in os.listdir(collections_dir):
             # Your existing collection logic
 
-            season_match = season_pattern.search(filename)
-            episode_match = episode_pattern.search(filename)
-            specials_match = specials_pattern.search(filename)
-            show_match = show_pattern.search(filename)
+    season_match = season_pattern.search(filename)
+    episode_match = episode_pattern.search(filename)
+    specials_match = specials_pattern.search(filename)
+    show_match = show_pattern.search(filename)
+    
+    category = None
+    season_number = None 
+    episode_number = None
+    show_name = None
+    
+    if show_match:
+        show_name = show_match.group(1).strip()
+        show_year = show_match.group(2).strip()
+        logger.debug(f" Extracted show name: '{show_name}', year: '{show_year}'")
+    
+    if season_match:
+        if service:
+            category = 'season'
+            season_number = season_match.group(1)
+            if show_name:
+                expected_dir = f"{show_name} ({show_year})"
+                logger.debug(f" Looking for show directory: {expected_dir}")
+                if not os.path.exists(os.path.join(shows_dir, expected_dir)):
+                    logger.debug(f" Show directory not found for: {expected_dir}")
+                    category = None
+        else:
+            category = 'skip'
+    
+    elif specials_match:
+        if service:
+            category = 'season'
+            season_number = None  # Explicitly set to None for specials
+            if show_name:
+                # Just check if the show directory exists, not the specials directory
+                expected_dir = f"{show_name} ({show_year})"
+                logger.debug(f" Looking for show directory for specials: {expected_dir}")
+                if not os.path.exists(os.path.join(shows_dir, expected_dir)):
+                    logger.debug(f" Show directory not found for specials: {expected_dir}")
+                    category = None
+        else:
+            category = 'skip'
+    
+    elif episode_match:
+        if service:
+            category = 'episode'
+            season_number = episode_match.group(1)
+            episode_number = episode_match.group(2)
             
-            category = None
-            season_number = None 
-            episode_number = None
-            show_name = None
+            # Log exact episode details for debugging
+            logger.debug(f" Found episode S{season_number}E{episode_number}")
             
-            if show_match:
-                show_name = show_match.group(1).strip()
-                show_year = show_match.group(2).strip()
-                logger.debug(f" Extracted show name: '{show_name}', year: '{show_year}'")
-            
-            if season_match:
-                if service:
-                    category = 'season'
-                    season_number = season_match.group(1)
-                    if show_name:
-                        expected_dir = f"{show_name} ({show_year})"
-                        logger.debug(f" Looking for show directory: {expected_dir}")
-                        if not os.path.exists(os.path.join(shows_dir, expected_dir)):
-                            logger.debug(f" Show directory not found for: {expected_dir}")
-                            category = None
-                else:
-                    category = 'skip'
-            
-            elif specials_match:
-                if service:
-                    category = 'season'
-                    season_number = None  # Explicitly set to None for specials
-                    if show_name:
-                        # Just check if the show directory exists, not the specials directory
-                        expected_dir = f"{show_name} ({show_year})"
-                        logger.debug(f" Looking for show directory for specials: {expected_dir}")
-                        if not os.path.exists(os.path.join(shows_dir, expected_dir)):
-                            logger.debug(f" Show directory not found for specials: {expected_dir}")
-                            category = None
-                else:
-                    category = 'skip'
-            
-            elif episode_match:
-                if service:
-                    category = 'episode'
-                    season_number = episode_match.group(1)
-                    episode_number = episode_match.group(2)
-                    
-                    # Log exact episode details for debugging
-                    logger.debug(f" Found episode S{season_number}E{episode_number}")
-                    
-                    if show_name:
-                        # Try multiple matching strategies with country preference
-                        exact_match = f"{show_name} ({show_year})"
-                        matching_dirs = []
+            if show_name:
+                # Try multiple matching strategies with country preference
+                exact_match = f"{show_name} ({show_year})"
+                matching_dirs = []
+                
+                # Step 1: Collect all possible matches with year
+                for dir_name in os.listdir(shows_dir):
+                    dir_show_match = re.match(r'(.+)\s\((\d{4})\)', dir_name, re.IGNORECASE)
+                    if dir_show_match:
+                        dir_show_name = dir_show_match.group(1).strip().lower()
+                        dir_show_year = dir_show_match.group(2)
                         
-                        # Step 1: Collect all possible matches with year
-                        for dir_name in os.listdir(shows_dir):
-                            dir_show_match = re.match(r'(.+)\s\((\d{4})\)', dir_name, re.IGNORECASE)
-                            if dir_show_match:
-                                dir_show_name = dir_show_match.group(1).strip().lower()
-                                dir_show_year = dir_show_match.group(2)
-                                
-                                # Check if show names match
-                                if dir_show_name.startswith(show_name.lower()):
-                                    matching_dirs.append(dir_name)
-                        
-                        best_match = None
-                        
-                        # Step 2: If multiple matches, prioritize exact match first, then US version
-                        if len(matching_dirs) > 1:
-                            # First look for exact match with year
-                            for match_dir in matching_dirs:
-                                if match_dir.lower() == exact_match.lower():
-                                    best_match = match_dir
-                                    logger.debug(f" Using exact match: '{match_dir}'")
-                                    break
-                            
-                            # If no exact match found, look for US version
-                            if not best_match:
-                                for match_dir in matching_dirs:
-                                    if "(US)" in match_dir or "(USA)" in match_dir:
-                                        best_match = match_dir
-                                        logger.debug(f" Prioritizing US version: '{match_dir}'")
-                                        break
-                        
-                        # Step 3: If still no match, prioritize closest year match
-                        if not best_match:
-                            closest_year_diff = 9999
-                            for match_dir in matching_dirs:
-                                dir_year_match = re.search(r'\((\d{4})\)', match_dir)
-                                if dir_year_match:
-                                    dir_year = int(dir_year_match.group(1))
-                                    year_diff = abs(int(show_year) - dir_year)
-                                    if year_diff < closest_year_diff:
-                                        closest_year_diff = year_diff
-                                        best_match = match_dir
-                        
-                        # Step 4: If only one match, use it
-                        elif len(matching_dirs) == 1:
-                            best_match = matching_dirs[0]
-                        
-                        # Step 5: If no matches found by year, try partial match as last resort
-                        if not best_match:
-                            for dir_name in os.listdir(shows_dir):
-                                if show_name.lower() in dir_name.lower():
-                                    if "(AU)" in dir_name or "(UK)" in dir_name or "(CA)" in dir_name:
-                                        # Skip non-US versions in partial matching unless it's the only option
-                                        continue
-                                    best_match = dir_name
-                                    logger.debug(f" Using partial match: '{show_name}' -> '{dir_name}'")
-                                    break
-                            
-                            # If still nothing, accept any partial match including non-US versions
-                            if not best_match:
-                                for dir_name in os.listdir(shows_dir):
-                                    if show_name.lower() in dir_name.lower():
-                                        best_match = dir_name
-                                        logger.warning(f" Using non-US partial match: '{show_name}' -> '{dir_name}'")
-                                        break
-                        
-                        # Check if we found any match at all
-                        found = best_match is not None
-                        
-                        if not found:
-                            logger.debug(f" Could not find directory for '{show_name} ({show_year})'")
-                            category = None
-            
-            else:
-                for dir_name in os.listdir(collections_dir):
-                    if filename.split('.')[0].lower().replace("collection", "").strip() == dir_name.lower().replace("collection", "").strip():
-                        if (service in ["kometa", "kodi"]):
-                            category = 'collection'
+                        # Check if show names match
+                        if dir_show_name.startswith(show_name.lower()):
+                            matching_dirs.append(dir_name)
+                
+                best_match = None
+                
+                # Step 2: If multiple matches, prioritize exact match first, then US version
+                if len(matching_dirs) > 1:
+                    # First look for exact match with year
+                    for match_dir in matching_dirs:
+                        if match_dir.lower() == exact_match.lower():
+                            best_match = match_dir
+                            logger.debug(f" Using exact match: '{match_dir}'")
                             break
-                        elif service not in ["kometa", "kodi"]:
-                            category = 'not_supported'
-                        break
-                else:
-                    for dir_name in os.listdir(movies_dir):
-                        if filename.split('.')[0].lower() in dir_name.lower():
-                            category = 'movie'
-                            break
-                    else:
-                        for dir_name in os.listdir(shows_dir):
-                            if filename.split('.')[0].lower() in dir_name.lower():
-                                category = 'show'
+                    
+                    # If no exact match found, look for US version
+                    if not best_match:
+                        for match_dir in matching_dirs:
+                            if "(US)" in match_dir or "(USA)" in match_dir:
+                                best_match = match_dir
+                                logger.debug(f" Prioritizing US version: '{match_dir}'")
                                 break
-        
-            if category not in ['movie', 'show', 'season', 'episode', 'collection']:
-                move_to_failed(filename, process_dir, failed_dir)
-                logger.info(f" {filename}:")
-                if category == 'skip':
-                    logger.info(" - Asset skipped due to 'service' not being specified")
-                elif category == 'not_supported':
-                    logger.info(f" - Asset skipped due to {service.capitalize()} not supporting collection assets")
-                else:
-                    logger.info(" - Match not found, please double check file/directory naming")
-                logger.info(" - Moved to failed directory")
-                logger.info("")
-        
-            return category, season_number, episode_number
+                
+                # Step 3: If still no match, prioritize closest year match
+                if not best_match:
+                    closest_year_diff = 9999
+                    for match_dir in matching_dirs:
+                        dir_year_match = re.search(r'\((\d{4})\)', match_dir)
+                        if dir_year_match:
+                            dir_year = int(dir_year_match.group(1))
+                            year_diff = abs(int(show_year) - dir_year)
+                            if year_diff < closest_year_diff:
+                                closest_year_diff = year_diff
+                                best_match = match_dir
+                
+                # Step 4: If only one match, use it
+                elif len(matching_dirs) == 1:
+                    best_match = matching_dirs[0]
+                
+                # Step 5: If no matches found by year, try partial match as last resort
+                if not best_match:
+                    for dir_name in os.listdir(shows_dir):
+                        if show_name.lower() in dir_name.lower():
+                            if "(AU)" in dir_name or "(UK)" in dir_name or "(CA)" in dir_name:
+                                # Skip non-US versions in partial matching unless it's the only option
+                                continue
+                            best_match = dir_name
+                            logger.debug(f" Using partial match: '{show_name}' -> '{dir_name}'")
+                            break
+                    
+                    # If still nothing, accept any partial match including non-US versions
+                    if not best_match:
+                        for dir_name in os.listdir(shows_dir):
+                            if show_name.lower() in dir_name.lower():
+                                best_match = dir_name
+                                logger.warning(f" Using non-US partial match: '{show_name}' -> '{dir_name}'")
+                                break
+                
+                # Check if we found any match at all
+                found = best_match is not None
+                
+                if not found:
+                    logger.debug(f" Could not find directory for '{show_name} ({show_year})'")
+                    category = None
+    
+    else:
+        for dir_name in os.listdir(collections_dir):
+            if filename.split('.')[0].lower().replace("collection", "").strip() == dir_name.lower().replace("collection", "").strip():
+                if (service in ["kometa", "kodi"]):
+                    category = 'collection'
+                    break
+                elif service not in ["kometa", "kodi"]:
+                    category = 'not_supported'
+                break
+        else:
+            for dir_name in os.listdir(movies_dir):
+                if filename.split('.')[0].lower() in dir_name.lower():
+                    category = 'movie'
+                    break
+            else:
+                for dir_name in os.listdir(shows_dir):
+                    if filename.split('.')[0].lower() in dir_name.lower():
+                        category = 'show'
+                        break
+
+    if category not in ['movie', 'show', 'season', 'episode', 'collection']:
+        move_to_failed(filename, process_dir, failed_dir)
+        logger.info(f" {filename}:")
+        if category == 'skip':
+            logger.info(" - Asset skipped due to 'service' not being specified")
+        elif category == 'not_supported':
+            logger.info(f" - Asset skipped due to {service.capitalize()} not supporting collection assets")
+        else:
+            logger.info(" - Match not found, please double check file/directory naming")
+        logger.info(" - Moved to failed directory")
+        logger.info("")
+
+    return category, season_number, episode_number
     
 # copy and rename #
 def copy_and_rename(filename, category, season_number, episode_number, movies_dir, shows_dir, collections_dir, process_dir, failed_dir, service):
