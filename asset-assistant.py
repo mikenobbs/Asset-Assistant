@@ -438,23 +438,32 @@ def categories(filename, movies_dir, shows_dir):
                         category = None
     
     else:
-        for dir_name in os.listdir(collections_dir):
-            if filename.split('.')[0].lower().replace("collection", "").strip() == dir_name.lower().replace("collection", "").strip():
-                if (service in ["kometa", "kodi"]):
-                    category = 'collection'
-                    break
-                elif service not in ["kometa", "kodi"]:
-                    category = 'not_supported'
-                break
-        else:
-            for dir_name in os.listdir(movies_dir):
-                if filename.split('.')[0].lower() in dir_name.lower():
-                    category = 'movie'
-                    break
-            else:
-                for dir_name in os.listdir(shows_dir):
-                    if filename.split('.')[0].lower() in dir_name.lower():
-                        category = 'show'
+        # Check if this might be a collection
+        if collections_dir:
+            for dir_name in os.listdir(collections_dir):
+                # Multiple comparison strategies for collection matching
+                file_base = filename.split('.')[0].lower()
+                dir_base = dir_name.lower()
+                
+                # Strategy 1: Direct comparison after removing "Collection"
+                file_name_norm = file_base.replace("collection", "").strip()
+                dir_name_norm = dir_base.replace("collection", "").strip()
+                
+                # Strategy 2: Remove all special characters for comparison
+                file_name_clean = re.sub(r'[^\w\s]', '', file_name_norm)
+                dir_name_clean = re.sub(r'[^\w\s]', '', dir_name_norm)
+                
+                # Try multiple matching methods
+                if (file_name_norm == dir_name_norm or 
+                    file_name_norm in dir_name_norm or 
+                    dir_name_norm in file_name_norm or
+                    file_name_clean == dir_name_clean):
+                    if (service in ["kometa", "kodi"]):
+                        category = 'collection'
+                        logger.debug(f" Found collection match: '{dir_name}' for '{filename}'")
+                        break
+                    elif service not in ["kometa", "kodi"]:
+                        category = 'not_supported'
                         break
 
     if category not in ['movie', 'show', 'season', 'episode', 'collection']:
