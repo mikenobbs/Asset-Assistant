@@ -538,7 +538,15 @@ def copy_and_rename(filename, category, season_number, episode_number, movies_di
     elif category == 'collection':
         directory = collections_dir
         for dir_name in os.listdir(directory):
-            if filename.split('.')[0].lower().replace("collection", "").strip() in dir_name.lower():
+            # Remove "Collection" from both names and compare after normalizing spaces
+            file_name_norm = filename.split('.')[0].lower().replace("collection", "").strip()
+            dir_name_norm = dir_name.lower().replace("collection", "").strip()
+            
+            # Try multiple matching methods
+            if (file_name_norm == dir_name_norm or 
+                file_name_norm in dir_name_norm or 
+                dir_name_norm in file_name_norm):
+                
                 dest = os.path.join(directory, dir_name, filename)
                 shutil.copy(src, dest)
                 logger.info(f" {filename}:")
@@ -551,7 +559,7 @@ def copy_and_rename(filename, category, season_number, episode_number, movies_di
                     os.rename(dest, new_dest)
                     logger.info(f" - Renamed {new_name}")
                     return category
-                    
+
     # Service-specific handling
     elif service == 'kometa':
         if category == 'season':
@@ -955,6 +963,6 @@ if discord_webhook:
 ## version ##
 version_file = os.path.join(os.path.dirname(__file__), 'VERSION')
 with open(version_file, 'r') as f:
-    version = f.read().strip()
+    versio
 
-logger.separator(text=f'Asset Assistant Finished\nTotal runtime {total_runtime:.2f} seconds', debug=False, border=True)
+logger.separator(text=f'Asset Assistant Finished\nTotal runtime {total_runtime:.2f} seconds', debug=False, border=True)n = f.read().strip()
