@@ -262,65 +262,6 @@ def categories(filename, movies_dir, shows_dir):
         show_year = show_match.group(2).strip()
         logger.debug(f" Extracted show name: '{show_name}', year: '{show_year}'")
     
-    # Your existing season, specials, and episode handling
-    
-    else:
-        # Check if this is a movie first by looking for it in movies_dir
-        if show_name and show_year:  # If we have a name and year extracted
-            # First try to find an exact match in movies directory
-            found_movie = False
-            for dir_name in os.listdir(movies_dir):
-                dir_match = re.match(r'(.+)\s\((\d{4})\)', dir_name, re.IGNORECASE)
-                if dir_match:
-                    dir_name_clean = dir_match.group(1).strip().lower()
-                    dir_year = dir_match.group(2)
-                    
-                    # Try different variations of the name to account for hyphens and other differences
-                    file_name_variations = [
-                        show_name.lower(),
-                        show_name.lower().replace("-", " "),  # Replace hyphens with spaces
-                        show_name.lower().replace(":", " "),  # Replace colons with spaces
-                        re.sub(r'[^a-z0-9]', '', show_name.lower())  # Remove all special chars
-                    ]
-                    
-                    # Try different variations for directory name too
-                    dir_name_variations = [
-                        dir_name_clean,
-                        dir_name_clean.replace("-", " "),
-                        dir_name_clean.replace(":", " "),
-                        re.sub(r'[^a-z0-9]', '', dir_name_clean)
-                    ]
-                    
-                    # Check if any variation matches and year matches
-                    if (any(var1 in var2 or var2 in var1 for var1 in file_name_variations for var2 in dir_name_variations) and
-                        show_year == dir_year):
-                        category = 'movie'
-                        found_movie = True
-                        logger.debug(f" Matched movie: '{show_name}' with directory: '{dir_name}'")
-                        break
-            
-            if found_movie:
-                return category, season_number, episode_number
-        
-        # If not a movie, continue with your existing collection and show logic
-        for dir_name in os.listdir(collections_dir):
-            # Your existing collection logic
-
-    season_match = season_pattern.search(filename)
-    episode_match = episode_pattern.search(filename)
-    specials_match = specials_pattern.search(filename)
-    show_match = show_pattern.search(filename)
-    
-    category = None
-    season_number = None 
-    episode_number = None
-    show_name = None
-    
-    if show_match:
-        show_name = show_match.group(1).strip()
-        show_year = show_match.group(2).strip()
-        logger.debug(f" Extracted show name: '{show_name}', year: '{show_year}'")
-    
     if season_match:
         if service:
             category = 'season'
