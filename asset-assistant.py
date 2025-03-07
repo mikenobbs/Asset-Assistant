@@ -268,6 +268,10 @@ def categories(filename, movies_dir, shows_dir):
         clean_filename = re.sub(r'\s+', ' ', filename.strip())
         file_base = os.path.splitext(clean_filename)[0].lower()
         
+        # First try to find directories with "collection" in the name
+        collection_matches = []
+        other_matches = []
+        
         for dir_name in os.listdir(collections_dir):
             dir_base = dir_name.lower()
             
@@ -279,16 +283,26 @@ def categories(filename, movies_dir, shows_dir):
             file_name_clean = re.sub(r'[^\w\s]', '', file_name_norm)
             dir_name_clean = re.sub(r'[^\w\s]', '', dir_name_norm)
             
-            logger.debug(f" Collection comparison: '{file_name_norm}' vs '{dir_name_norm}'")
-            
-            # Try multiple matching methods
+            # Check if this is a potential match
             if (file_name_norm == dir_name_norm or 
                 file_name_norm in dir_name_norm or 
                 dir_name_norm in file_name_norm or
                 file_name_clean == dir_name_clean):
-                category = 'collection'
-                logger.debug(f" Found collection match: '{dir_name}' for '{filename}'")
-                break
+                
+                # Prioritize matches with "collection" in the name
+                if "collection" in dir_base:
+                    collection_matches.append(dir_name)
+                else:
+                    other_matches.append(dir_name)
+        
+        # First use matches with "collection" in the name if available
+        if collection_matches:
+            category = 'collection'
+            logger.debug(f" Found prioritized collection match with 'collection' in name: '{collection_matches[0]}' for '{filename}'")
+        # Otherwise fall back to other matches
+        elif other_matches:
+            category = 'collection'
+            logger.debug(f" Found collection match: '{other_matches[0]}' for '{filename}'")
         
         # If the service doesn't support collections
         if category is None and service not in ["kometa", "kodi"]:
