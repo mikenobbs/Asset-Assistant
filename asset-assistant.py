@@ -537,28 +537,63 @@ def copy_and_rename(filename, category, season_number, episode_number, movies_di
             # Continue with the rest of the function as before...
     elif category == 'collection':
         directory = collections_dir
+        matched = False
+        
+        # Original filename without extension for comparison
+        file_base = filename.split('.')[0]
+        
         for dir_name in os.listdir(directory):
-            # Remove "Collection" from both names and compare after normalizing spaces
-            file_name_norm = filename.split('.')[0].lower().replace("collection", "").strip()
+            # Multiple comparison strategies
+            
+            # Strategy 1: Direct comparison after removing "Collection"
+            file_name_norm = file_base.lower().replace("collection", "").strip()
             dir_name_norm = dir_name.lower().replace("collection", "").strip()
+            
+            # Strategy 2: Remove all special characters for comparison
+            file_name_clean = re.sub(r'[^\w\s]', '', file_name_norm)
+            dir_name_clean = re.sub(r'[^\w\s]', '', dir_name_norm)
             
             # Try multiple matching methods
             if (file_name_norm == dir_name_norm or 
                 file_name_norm in dir_name_norm or 
-                dir_name_norm in file_name_norm):
+                dir_name_norm in file_name_norm or
+                file_name_clean == dir_name_clean):
                 
                 dest = os.path.join(directory, dir_name, filename)
                 shutil.copy(src, dest)
                 logger.info(f" {filename}:")
                 logger.info(f" - Category: {category.capitalize()}")
                 logger.info(f" - Copied to {dir_name}")
-                with PIL.Image.open(dest) as img:
-                    width, height = img.size
-                    new_name = "poster" + os.path.splitext(filename)[1] if height > width else "background" + os.path.splitext(filename)[1]
-                    new_dest = os.path.join(directory, dir_name, new_name)
-                    os.rename(dest, new_dest)
-                    logger.info(f" - Renamed {new_name}")
-                    return category
+                
+                # Determine new name based on aspect ratio
+                try:
+                    with PIL.Image.open(dest) as img:
+                        width, height = img.size
+                        if height > width:
+                            new_name = "poster" + os.path.splitext(filename)[1]
+                        else:
+                            new_name = "background" + os.path.splitext(filename)[1]
+                        
+                        new_dest = os.path.join(directory, dir_name, new_name)
+                        os.rename(dest, new_dest)
+                        logger.info(f" - Renamed {new_name}")
+                        matched = True
+                        break
+                except Exception as e:
+                    logger.error(f" - Error processing image: {e}")
+                    # Continue with next directory if there's an issue
+        
+        if matched:
+            return category
+        else:
+            # If no match was found with any method
+            move_to_failed(filename, process_dir, failed_dir)
+            logger.info(f" {filename}:")
+            logger.info(f" - Category: {category.capitalize()}")
+            logger.error(f" - No matching collection directory found")
+            logger.info(" - Moved to failed directory")
+            logger.info("")
+            return 'failed'
 
     # Service-specific handling
     elif service == 'kometa':
