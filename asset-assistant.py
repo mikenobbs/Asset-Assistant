@@ -272,13 +272,16 @@ def categories(filename, movies_dir, shows_dir):
                     dir_name_clean = dir_match.group(1).strip().lower()
                     dir_year = dir_match.group(2)
                     
-                    # Try with multiple variants of the name to handle special characters
+                    # Enhanced variants with more transformations
                     file_name_variants = [
                         show_name.lower(),
                         show_name.lower().replace("-", " "),
                         show_name.lower().replace(":", " "),
                         show_name.lower().replace("'", ""),
-                        show_name.lower().replace(".", "")
+                        show_name.lower().replace(".", ""),
+                        show_name.lower().replace("-", ""),  # Remove hyphens entirely
+                        re.sub(r'[^\w\s]', '', show_name.lower()),  # Remove all special chars
+                        re.sub(r'[^\w\s]', ' ', show_name.lower())  # Replace special chars with spaces
                     ]
                     
                     dir_name_variants = [
@@ -286,24 +289,39 @@ def categories(filename, movies_dir, shows_dir):
                         dir_name_clean.replace("-", " "),
                         dir_name_clean.replace(":", " "),
                         dir_name_clean.replace("'", ""),
-                        dir_name_clean.replace(".", "")
+                        dir_name_clean.replace(".", ""),
+                        dir_name_clean.replace("-", ""),  # Remove hyphens entirely
+                        re.sub(r'[^\w\s]', '', dir_name_clean),  # Remove all special chars
+                        re.sub(r'[^\w\s]', ' ', dir_name_clean)  # Replace special chars with spaces
                     ]
+                    
+                    # Create normalized versions for better matching
+                    file_normalized = re.sub(r'\s+', '', show_name.lower().replace("-", ""))
+                    dir_normalized = re.sub(r'\s+', '', dir_name_clean.replace("-", ""))
                     
                     # Check for match with any variant
                     for file_variant in file_name_variants:
                         for dir_variant in dir_name_variants:
-                            if (file_variant == dir_variant or 
+                            # Check for direct matches or substrings
+                            if ((file_variant == dir_variant or 
                                 file_variant in dir_variant or 
-                                dir_variant in file_variant) and show_year == dir_year:
+                                dir_variant in file_variant) and show_year == dir_year):
                                 category = 'movie'
                                 movie_found = True
                                 logger.debug(f" Found movie match: '{dir_name}' for '{show_name} ({show_year})'")
                                 break
                         if movie_found:
                             break
+                    
+                    # Try normalized versions as a fallback
+                    if not movie_found and file_normalized == dir_normalized and show_year == dir_year:
+                        category = 'movie'
+                        movie_found = True
+                        logger.debug(f" Found movie match using normalized names: '{dir_name}' for '{show_name} ({show_year})'")
+                
                 if movie_found:
                     break
-    
+
     # Only continue with TV show matching if not already matched as a movie
     if category != 'movie':
         if season_match:
