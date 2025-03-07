@@ -963,6 +963,6 @@ if discord_webhook:
 ## version ##
 version_file = os.path.join(os.path.dirname(__file__), 'VERSION')
 with open(version_file, 'r') as f:
-    versio
+    version = f.read().strip()
 
-logger.separator(text=f'Asset Assistant Finished\nTotal runtime {total_runtime:.2f} seconds', debug=False, border=True)n = f.read().strip()
+logger.separator(text=f'Asset Assistant Finished\nTotal runtime {total_runtime:.2f} seconds', debug=False, border=True)
