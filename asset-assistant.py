@@ -241,26 +241,26 @@ def process_directories(process_dir):
 
 ## define categories ##
 def categories(filename, movies_dir, shows_dir):
-    # Your existing pattern definitions remain unchanged
+    # Your existing pattern definitions with updated name
     season_pattern = re.compile(r'(?:^|\s|-)\s*Season\s+(\d+)', re.IGNORECASE)
     episode_pattern = re.compile(r'S(\d+)[\s\.]?E(\d+)', re.IGNORECASE)
     specials_pattern = re.compile(r'Specials', re.IGNORECASE)
-    show_pattern = re.compile(r'(.+)\s\((\d{4})\)', re.IGNORECASE)
+    media_pattern = re.compile(r'(.+)\s\((\d{4})\)', re.IGNORECASE)  # Renamed from show_pattern
 
     season_match = season_pattern.search(filename)
     episode_match = episode_pattern.search(filename)
     specials_match = specials_pattern.search(filename)
-    show_match = show_pattern.search(filename)
+    media_match = media_pattern.search(filename)  # Renamed from show_match
     
     category = None
     season_number = None 
     episode_number = None
     show_name = None
     
-    if show_match:
-        show_name = show_match.group(1).strip()
-        show_year = show_match.group(2).strip()
-        logger.debug(f" Extracted show name: '{show_name}', year: '{show_year}'")
+    if media_match:  # Renamed from show_match
+        show_name = media_match.group(1).strip()  # Variable name kept for code compatibility
+        show_year = media_match.group(2).strip()
+        logger.debug(f" Extracted media name: '{show_name}', year: '{show_year}'")
         
         # First check if this is a movie by checking movies_dir
         if movies_dir:
