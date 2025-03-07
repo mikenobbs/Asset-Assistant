@@ -440,10 +440,16 @@ def categories(filename, movies_dir, shows_dir):
     else:
         # Check if this might be a collection
         if collections_dir:
+            # Strip any extra spaces in the filename for better matching
+            clean_filename = re.sub(r'\s+', ' ', filename.strip())
+            
             for dir_name in os.listdir(collections_dir):
                 # Multiple comparison strategies for collection matching
-                file_base = filename.split('.')[0].lower()
+                file_base = os.path.splitext(clean_filename)[0].lower()  # Use splitext instead of split
                 dir_base = dir_name.lower()
+                
+                # Log comparison details for debugging
+                logger.debug(f" Collection matching: File base '{file_base}' vs Dir '{dir_base}'")
                 
                 # Strategy 1: Direct comparison after removing "Collection"
                 file_name_norm = file_base.replace("collection", "").strip()
@@ -452,6 +458,10 @@ def categories(filename, movies_dir, shows_dir):
                 # Strategy 2: Remove all special characters for comparison
                 file_name_clean = re.sub(r'[^\w\s]', '', file_name_norm)
                 dir_name_clean = re.sub(r'[^\w\s]', '', dir_name_norm)
+                
+                # Log normalized versions
+                logger.debug(f" Normalized: File '{file_name_norm}' vs Dir '{dir_name_norm}'")
+                logger.debug(f" Cleaned: File '{file_name_clean}' vs Dir '{dir_name_clean}'")
                 
                 # Try multiple matching methods
                 if (file_name_norm == dir_name_norm or 
