@@ -259,57 +259,8 @@ def categories(filename, movies_dir, shows_dir):
     episode_number = None
     show_name = None
     
-    # First check if this is a collection - check this BEFORE media match
-    if collection_match and collections_dir and (service in ["kometa", "kodi"]):
-        collection_name = collection_match.group(1).strip()
-        logger.debug(f" Detected possible collection: '{collection_name}'")
-        
-        # Strip any extra spaces in the filename for better matching
-        clean_filename = re.sub(r'\s+', ' ', filename.strip())
-        file_base = os.path.splitext(clean_filename)[0].lower()
-        
-        # First try to find directories with "collection" in the name
-        collection_matches = []
-        other_matches = []
-        
-        for dir_name in os.listdir(collections_dir):
-            dir_base = dir_name.lower()
-            
-            # Strategy 1: Direct comparison after removing "Collection"
-            file_name_norm = file_base.replace("collection", "").strip()
-            dir_name_norm = dir_base.replace("collection", "").strip()
-            
-            # Strategy 2: Remove all special characters for comparison
-            file_name_clean = re.sub(r'[^\w\s]', '', file_name_norm)
-            dir_name_clean = re.sub(r'[^\w\s]', '', dir_name_norm)
-            
-            # Check if this is a potential match
-            if (file_name_norm == dir_name_norm or 
-                file_name_norm in dir_name_norm or 
-                dir_name_norm in file_name_norm or
-                file_name_clean == dir_name_clean):
-                
-                # Prioritize matches with "collection" in the name
-                if "collection" in dir_base:
-                    collection_matches.append(dir_name)
-                else:
-                    other_matches.append(dir_name)
-        
-        # First use matches with "collection" in the name if available
-        if collection_matches:
-            category = 'collection'
-            logger.debug(f" Found prioritized collection match with 'collection' in name: '{collection_matches[0]}' for '{filename}'")
-        # Otherwise fall back to other matches
-        elif other_matches:
-            category = 'collection'
-            logger.debug(f" Found collection match: '{other_matches[0]}' for '{filename}'")
-        
-        # If the service doesn't support collections
-        if category is None and service not in ["kometa", "kodi"]:
-            category = 'not_supported'
-    
-    # Now check media pattern match (movies and shows)
-    elif media_match:
+    # First check if this is a movie by checking media pattern match
+    if media_match:
         show_name = media_match.group(1).strip()  # Variable name kept for code compatibility
         show_year = media_match.group(2).strip()
         logger.debug(f" Extracted media name: '{show_name}', year: '{show_year}'")
@@ -373,7 +324,56 @@ def categories(filename, movies_dir, shows_dir):
                 
                 if movie_found:
                     break
-
+    
+    # If not a movie, check if this is a collection
+    if category is None and collection_match and collections_dir and (service in ["kometa", "kodi"]):
+        collection_name = collection_match.group(1).strip()
+        logger.debug(f" Detected possible collection: '{collection_name}'")
+        
+        # Strip any extra spaces in the filename for better matching
+        clean_filename = re.sub(r'\s+', ' ', filename.strip())
+        file_base = os.path.splitext(clean_filename)[0].lower()
+        
+        # First try to find directories with "collection" in the name
+        collection_matches = []
+        other_matches = []
+        
+        for dir_name in os.listdir(collections_dir):
+            dir_base = dir_name.lower()
+            
+            # Strategy 1: Direct comparison after removing "Collection"
+            file_name_norm = file_base.replace("collection", "").strip()
+            dir_name_norm = dir_base.replace("collection", "").strip()
+            
+            # Strategy 2: Remove all special characters for comparison
+            file_name_clean = re.sub(r'[^\w\s]', '', file_name_norm)
+            dir_name_clean = re.sub(r'[^\w\s]', '', dir_name_norm)
+            
+            # Check if this is a potential match
+            if (file_name_norm == dir_name_norm or 
+                file_name_norm in dir_name_norm or 
+                dir_name_norm in file_name_norm or
+                file_name_clean == dir_name_clean):
+                
+                # Prioritize matches with "collection" in the name
+                if "collection" in dir_base:
+                    collection_matches.append(dir_name)
+                else:
+                    other_matches.append(dir_name)
+        
+        # First use matches with "collection" in the name if available
+        if collection_matches:
+            category = 'collection'
+            logger.debug(f" Found prioritized collection match with 'collection' in name: '{collection_matches[0]}' for '{filename}'")
+        # Otherwise fall back to other matches
+        elif other_matches:
+            category = 'collection'
+            logger.debug(f" Found collection match: '{other_matches[0]}' for '{filename}'")
+        
+        # If the service doesn't support collections
+        if category is None and service not in ["kometa", "kodi"]:
+            category = 'not_supported'
+    
     # Only continue with TV show matching if not already matched as a movie
     if category != 'movie':
         if season_match:
