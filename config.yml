@@ -3,6 +3,9 @@ process: /path/to/process/directory
 shows: /path/to/shows/directory
 movies: /path/to/movies/directory
 collections: /path/to/collections/directory
+failed: /path/to/failed/directory
+logs: /path/to/logs/directory
+backup: /path/to/backup/directory
 
 ## Settings ##
 enable_backup:  # true or false, false by default

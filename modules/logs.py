@@ -1,13 +1,14 @@
 import logging, os
 from logging.handlers import RotatingFileHandler
 
+# Move this line outside the class definition
+logging.addLevelName(logging.WARNING, 'WARN')
+
 class MyLogger:
     class CustomFormatter(logging.Formatter):
         def __init__(self, screen_width, *args, **kwargs):
             super().__init__(*args, **kwargs)
             self.screen_width = screen_width
-
-        logging.addLevelName(logging.WARNING, 'WARN')
         
         def format(self, record):
             levelname = record.levelname
@@ -18,15 +19,24 @@ class MyLogger:
             return super().format(record)
 
     def __init__(self, separating_character='=', screen_width=100, log_file='assistant.log'):
-        parent_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        # Get logs directory from config
+        if 'config' in globals() and config.get('logs'):
+            self.log_dir = config['logs']
+        else:
+            parent_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+            self.log_dir = os.path.join(parent_dir, 'logs')
+        
+        os.makedirs(self.log_dir, exist_ok=True)
         self.separating_character = separating_character
         self.screen_width = screen_width
-        self.log_dir = os.path.join(parent_dir, 'logs')
-        os.makedirs(self.log_dir, exist_ok=True)
         self.log_file = os.path.join(self.log_dir, log_file)
         self.logger = logging.getLogger(__name__)
         self.logger.setLevel(logging.DEBUG)
         
+        # Clear any existing handlers to avoid duplicates
+        if self.logger.hasHandlers():
+            self.logger.handlers.clear()
+            
         self.main_handler = self._get_handler(self.log_file)
 
         console_handler = logging.StreamHandler()
@@ -94,6 +104,9 @@ class MyLogger:
         formatter = logging.Formatter("[%(asctime)s]  [%(levelname)s]  |%(message)-{0}s|".format(self.screen_width))
         handler.setFormatter(formatter)
         if os.path.isfile(log_file):
-            self.logger.removeHandler(handler)
+            # Only attempt to remove a handler that exists
+            for existing_handler in self.logger.handlers[:]:
+                if isinstance(existing_handler, RotatingFileHandler) and existing_handler.baseFilename == handler.baseFilename:
+                    self.logger.removeHandler(existing_handler)
             handler.doRollover()
         return handler
