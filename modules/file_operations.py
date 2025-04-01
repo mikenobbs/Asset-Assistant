@@ -192,3 +192,48 @@ def backup_existing_assets(dest_folder, dest_filename, backup_dir, media_name=No
                 return False
     
     return True
+
+def compress_and_convert_images(directory, quality=85):
+    """
+    Compresses and converts image files to optimized JPG format.
+    
+    Args:
+        directory (str): Directory containing images to process
+        quality (int): JPEG quality (1-100)
+    
+    Returns:
+        int: Number of images processed
+    """
+    import os
+    import PIL.Image
+    from modules.logs import MyLogger
+    logger = MyLogger()
+    
+    processed_count = 0
+    
+    for root, dirs, files in os.walk(directory):
+        for file in files:
+            if file.lower().endswith(('.png', '.jpeg', '.bmp', '.gif', '.tiff', '.jpg')):
+                original_path = os.path.join(root, file)
+                # Use same filename but with .jpg extension
+                new_file = os.path.splitext(file)[0] + '.jpg'
+                new_path = os.path.join(root, new_file)
+
+                try:
+                    with PIL.Image.open(original_path) as img:
+                        # Convert image mode if necessary
+                        if img.mode in ('RGBA', 'LA', 'P'):
+                            img = img.convert("RGB")
+                        # Save with optimization
+                        img.save(new_path, 'JPEG', quality=quality, optimize=True)
+
+                    # Remove original if we changed the format
+                    if new_file.lower() != file.lower():
+                        os.remove(original_path)
+                        
+                    processed_count += 1
+                    logger.debug(f" Compressed and converted '{file}' to optimized JPEG")
+                except Exception as e:
+                    logger.error(f" Failed to compress '{file}': {e}")
+    
+    return processed_count

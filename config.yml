@@ -12,6 +12,8 @@ enable_backup:  # true or false, false by default
 service:  # optional: plex, kometa, emby, jellyfin, kodi
 plex_specials:  # required if using plex, true = Specials, false = Season 00
 debug: false  # Set to true to enable detailed debug logging
+compress_images: false  # Set to true to compress and optimize images
+image_quality: 85  # JPEG quality (1-100), default is 85
 
 ## Notifications ## 
 # Leave blank to disable

@@ -16,7 +16,7 @@ from modules.logs import MyLogger
 from modules.config_manager import ConfigManager
 from modules.media_matcher import MediaMatcher
 from modules.asset_processor import AssetProcessor
-from modules.file_operations import unzip_files, process_directories, backup_file, delete_file, move_to_failed
+from modules.file_operations import unzip_files, process_directories, backup_file, delete_file, move_to_failed, compress_and_convert_images
 from modules.notifications import discord, generate_summary
 
 # Initialize logger with default settings (debug=False)
@@ -84,6 +84,8 @@ def main():
     backup_dir = config['backup']
     backup_enabled = config.get('enable_backup', False)
     service = config.get('service')
+    compress_images = config.get('compress_images', False)
+    image_quality = config.get('image_quality', 85)
     
     logger.separator(text="Processing Images", debug=False, border=True)
 
@@ -92,6 +94,15 @@ def main():
 
     # Process subdirectories
     process_directories(process_dir)
+    
+    # Compress images if enabled
+    if compress_images:
+        logger.info(" Compressing and optimizing images...")
+        processed_count = compress_and_convert_images(process_dir, quality=image_quality)
+        if processed_count > 0:
+            logger.info(f" Processed {processed_count} images")
+        else:
+            logger.info(" No images were processed")
 
     # Setup media matcher and asset processor
     media_matcher = MediaMatcher(movies_dir, shows_dir, collections_dir)
@@ -101,7 +112,14 @@ def main():
     moved_counts = {'movie': 0, 'show': 0, 'season': 0, 'episode': 0, 'collection': 0, 'failed': 0}
     
     # Create a list of supported file extensions
-    supported_extensions = ('.jpg', '.jpeg', '.png')
+    standard_extensions = ('.jpg', '.jpeg', '.png')
+    extended_extensions = ('.bmp', '.gif', '.tiff')
+    
+    # If compression is enabled, we can also process other image formats
+    supported_extensions = standard_extensions + extended_extensions if compress_images else standard_extensions
+    
+    if compress_images and len(extended_extensions) > 0:
+        logger.debug(f" Extended format support enabled: {', '.join(extended_extensions)}")
 
     # Get a stable snapshot of files before processing begins
     files_to_process = []
@@ -111,7 +129,10 @@ def main():
         if os.path.isfile(file_path) and filename.lower().endswith(supported_extensions):
             files_to_process.append(filename)
         elif os.path.isfile(file_path):  # Handle non-image files
-            logger.info(f" Skipping non-image file: {filename}")
+            if compress_images and filename.lower().endswith(extended_extensions):
+                logger.info(f" Unsupported format without compression: {filename}")
+            else:
+                logger.info(f" Skipping non-image file: {filename}")
             move_to_failed(filename, process_dir, failed_dir)
             moved_counts['failed'] += 1
 
