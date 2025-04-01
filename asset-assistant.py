@@ -73,9 +73,7 @@ def main():
     debug_enabled = args.debug or config.get('debug', False)
     logger = MyLogger(debug=debug_enabled)
     if debug_enabled:
-        logger.info(" Debug logging enabled")
         logger.separator(text="Configuration Details", debug=True, border=True)
-        logger.debug(" === ENVIRONMENT VARIABLES AND CONFIGURATION ===")
         logger.debug(f" PROCESSDIR: {config.get('process')}")
         logger.debug(f" SHOWSDIR: {config.get('shows')}")
         logger.debug(f" MOVIESDIR: {config.get('movies')}")
@@ -89,7 +87,6 @@ def main():
         logger.debug(f" COMPRESS_IMAGES: {config.get('compress_images', False)}")
         logger.debug(f" IMAGE_QUALITY: {config.get('image_quality', 85)}")
         logger.debug(f" DEBUG: {config.get('debug', False)}")
-        logger.debug(" ===============================================")
 
     # Get configuration variables
     process_dir = config['process']
