@@ -324,10 +324,22 @@ class AssetProcessor:
                     score = 0
                     match_reason = ""
                     
-                    # Exact match after normalization
-                    if file_name_norm == dir_name_norm:
-                        score = 100
+                    # Exact directory match (has highest priority)
+                    if file_base.lower() == dir_name.lower():
+                        score = 500
+                        match_reason = "exact directory match"
+                    # Exact match where directory IS the collection (e.g. 'After Collection')
+                    elif "collection" in dir_name.lower() and file_base.lower().replace(".jpg", "").strip() == dir_name.lower():
+                        score = 400
+                        match_reason = "exact collection directory match"
+                    # Direct match after normalization
+                    elif file_name_norm == dir_name_norm:
+                        score = 300
                         match_reason = "exact match after normalization"
+                    # IMPORTANT: Check for directory that CONTAINS the word collection AND matches core name
+                    elif "collection" in dir_name.lower() and core_name.lower() in dir_name.lower().replace("collection", "").strip():
+                        score = 200
+                        match_reason = "directory with 'collection' contains core name"
                     # One string contains the other
                     elif file_name_norm in dir_name_norm:
                         score = 80
