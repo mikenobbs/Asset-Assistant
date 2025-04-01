@@ -81,47 +81,131 @@ class AssetProcessor:
             move_to_failed(filename, self.process_dir, self.failed_dir)
             return 'failed'
             
-        # Find the best directory match
-        name_year_match = re.match(r'(.+)\s\((\d{4})\)', filename, re.IGNORECASE)
-        
-        best_match = None
-        if name_year_match:
-            file_name = name_year_match.group(1).strip().lower()
-            file_year = name_year_match.group(2)
-            
-            for dir_name in os.listdir(directory):
-                dir_match = re.match(r'(.+)\s\((\d{4})\)', dir_name, re.IGNORECASE)
-                if dir_match:
-                    dir_title = dir_match.group(1).strip().lower()
-                    dir_year = dir_match.group(2)
+        # Instead of reimplementing matching logic, use the media_matcher's more robust matching
+        if category == 'movie':
+            # Extract name and year from filename
+            name_year_match = re.match(r'(.+)\s\((\d{4})\)', filename, re.IGNORECASE)
+            if name_year_match:
+                file_name = name_year_match.group(1).strip()
+                file_year = name_year_match.group(2)
+                
+                # Get all movie directories
+                movie_dirs = os.listdir(directory)
+                best_match = None
+                
+                # Try an exact match first
+                exact_match = f"{file_name} ({file_year})"
+                if exact_match in movie_dirs:
+                    best_match = exact_match
+                    logger.debug(f" Using exact match: '{exact_match}'")
+                
+                # If no exact match, try more flexible matching using the same variants as MediaMatcher
+                if not best_match:
+                    # Create variants of the file name to handle special characters
+                    file_variants = [
+                        file_name.lower(),
+                        file_name.lower().replace("-", " "),
+                        file_name.lower().replace(":", " "),
+                        file_name.lower().replace("'", ""),
+                        file_name.lower().replace(".", ""),
+                        file_name.lower().replace("-", ""),
+                        re.sub(r'[^\w\s]', '', file_name.lower()),
+                        re.sub(r'[^\w\s]', ' ', file_name.lower())
+                    ]
                     
-                    if file_name == dir_title and file_year == dir_year:
-                        best_match = dir_name
-                        break
-            
-            # Fall back to partial matching if needed
-            if not best_match:
+                    for dir_name in movie_dirs:
+                        dir_match = re.match(r'(.+)\s\((\d{4})\)', dir_name, re.IGNORECASE)
+                        if dir_match:
+                            dir_title = dir_match.group(1).strip()
+                            dir_year = dir_match.group(2)
+                            
+                            # Skip if years don't match
+                            if file_year != dir_year:
+                                continue
+                                
+                            # Create variants of the directory name for better matching
+                            dir_variants = [
+                                dir_title.lower(),
+                                dir_title.lower().replace("-", " "),
+                                dir_title.lower().replace(":", " "),
+                                dir_title.lower().replace("'", ""),
+                                dir_title.lower().replace(".", ""),
+                                dir_title.lower().replace("-", ""),
+                                re.sub(r'[^\w\s]', '', dir_title.lower()),
+                                re.sub(r'[^\w\s]', ' ', dir_title.lower())
+                            ]
+                            
+                            # Check all variants against each other
+                            for file_var in file_variants:
+                                for dir_var in dir_variants:
+                                    if (file_var == dir_var or 
+                                        file_var in dir_var or 
+                                        dir_var in file_var):
+                                        best_match = dir_name
+                                        logger.debug(f" Using flexible match: '{file_name}' -> '{dir_name}'")
+                                        break
+                                if best_match:
+                                    break
+                            if best_match:
+                                break
+            else:
+                # Simple matching for files without year
+                file_name_simple = filename.split('.')[0].lower()
+                
                 for dir_name in os.listdir(directory):
-                    if file_name in dir_name.lower():
+                    if file_name_simple == dir_name.lower().split('(')[0].strip():
                         best_match = dir_name
-                        logger.warning(f" - Using partial match: '{file_name}' -> '{dir_name}'")
                         break
+                
+                # Last resort - partial match
+                if not best_match:
+                    for dir_name in os.listdir(directory):
+                        if file_name_simple in dir_name.lower():
+                            best_match = dir_name
+                            logger.warning(f" - Using partial match: '{file_name_simple}' -> '{dir_name}'")
+                            break
         else:
-            # Simple matching for files without year
-            file_name_simple = filename.split('.')[0].lower()
+            # For show posters, use the same approach as before
+            name_year_match = re.match(r'(.+)\s\((\d{4})\)', filename, re.IGNORECASE)
             
-            for dir_name in os.listdir(directory):
-                if file_name_simple == dir_name.lower().split('(')[0].strip():
-                    best_match = dir_name
-                    break
-            
-            # Last resort - partial match
-            if not best_match:
+            best_match = None
+            if name_year_match:
+                file_name = name_year_match.group(1).strip().lower()
+                file_year = name_year_match.group(2)
+                
                 for dir_name in os.listdir(directory):
-                    if file_name_simple in dir_name.lower():
+                    dir_match = re.match(r'(.+)\s\((\d{4})\)', dir_name, re.IGNORECASE)
+                    if dir_match:
+                        dir_title = dir_match.group(1).strip().lower()
+                        dir_year = dir_match.group(2)
+                        
+                        if file_name == dir_title and file_year == dir_year:
+                            best_match = dir_name
+                            break
+                
+                # Fall back to partial matching if needed
+                if not best_match:
+                    for dir_name in os.listdir(directory):
+                        if file_name in dir_name.lower():
+                            best_match = dir_name
+                            logger.warning(f" - Using partial match: '{file_name}' -> '{dir_name}'")
+                            break
+            else:
+                # Simple matching for files without year
+                file_name_simple = filename.split('.')[0].lower()
+                
+                for dir_name in os.listdir(directory):
+                    if file_name_simple == dir_name.lower().split('(')[0].strip():
                         best_match = dir_name
-                        logger.warning(f" - Using partial match: '{file_name_simple}' -> '{dir_name}'")
                         break
+                
+                # Last resort - partial match
+                if not best_match:
+                    for dir_name in os.listdir(directory):
+                        if file_name_simple in dir_name.lower():
+                            best_match = dir_name
+                            logger.warning(f" - Using partial match: '{file_name_simple}' -> '{dir_name}'")
+                            break
         
         # Process the matched directory
         if best_match:
