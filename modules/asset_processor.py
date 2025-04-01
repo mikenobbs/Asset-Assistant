@@ -501,7 +501,7 @@ class AssetProcessor:
                     media_name = dir_name.strip()
                     # Backup existing files if destination backup is enabled
                     if self.backup_destination:
-                        backup_existing_assets(dest_folder, season_name, self.backup_dir, media_name=media_name)
+                        backup_existing_assets(dest_folder, season_name, self.backup_dir, media_name=media_name, season_number=season_number)
                 
                 if copy_file(src, dest, filename):
                     # Determine new name
@@ -549,7 +549,7 @@ class AssetProcessor:
                 media_name = best_match.strip()
                 # Backup existing files if destination backup is enabled
                 if self.backup_destination:
-                    backup_existing_assets(dest_folder, episode_name, self.backup_dir, media_name=media_name)
+                    backup_existing_assets(dest_folder, episode_name, self.backup_dir, media_name=media_name, season_number=season_number, episode_number=episode_number)
             
             if copy_file(src, dest, filename):
                 new_name = f"S{season_number.zfill(2)}E{episode_number.zfill(2)}" + os.path.splitext(filename)[1]
@@ -620,7 +620,7 @@ class AssetProcessor:
                 media_name = matching_dir_name.strip()
                 # Backup existing files if destination backup is enabled
                 if self.backup_destination:
-                    backup_existing_assets(season_dir, season_name, self.backup_dir, media_name=media_name)
+                    backup_existing_assets(season_dir, season_name, self.backup_dir, media_name=media_name, season_number=season_number)
             
             if copy_file(src, dest, filename):
                 # Rename the file
@@ -707,7 +707,7 @@ class AssetProcessor:
                     media_name = f"{best_match} - {backup_name}".strip()
                     # Backup existing files if destination backup is enabled
                     if self.backup_destination:
-                        backup_existing_assets(season_dir, backup_name, self.backup_dir, media_name=media_name)
+                        backup_existing_assets(season_dir, backup_name, self.backup_dir, media_name=media_name, season_number=season_number, episode_number=episode_number)
                 
                 if copy_file(src, dest, filename) and rename_file(dest, new_dest):
                     logger.info(f" {filename}:")

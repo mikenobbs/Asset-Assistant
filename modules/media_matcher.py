@@ -82,6 +82,15 @@ class MediaMatcher:
                 
                 if show_name and not self._find_show_directory(show_name, show_year):
                     category = None
+            
+            # Check for main show poster (filename is just show name and year)
+            elif media_match and not season_match and not episode_match and not specials_match:
+                # If the file has show name and year but no season/episode identifiers, 
+                # and matches a show directory, it's the main show poster
+                show_dir = self._find_show_directory(show_name, show_year)
+                if show_dir:
+                    category = 'show'
+                    logger.debug(f" Detected main show poster for '{show_name} ({show_year})'")
         
         return {
             'category': category,

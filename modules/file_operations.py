@@ -119,7 +119,7 @@ def delete_file(path):
         logger.error(f" - Failed to delete: {e}")
     return False
 
-def backup_existing_assets(dest_folder, dest_filename, backup_dir, media_name=None, delete_original=True):
+def backup_existing_assets(dest_folder, dest_filename, backup_dir, media_name=None, season_number=None, episode_number=None, delete_original=True):
     """
     Check if there are existing assets with supported extensions in the destination folder
     and back them up before overwriting.
@@ -129,6 +129,8 @@ def backup_existing_assets(dest_folder, dest_filename, backup_dir, media_name=No
         dest_filename (str): Destination filename (without extension)
         backup_dir (str): Backup directory path
         media_name (str, optional): Media name to use in backup filename (e.g., movie/show name)
+        season_number (str, optional): Season number for TV shows
+        episode_number (str, optional): Episode number for TV shows
         delete_original (bool): Whether to delete the original file after backup
     
     Returns:
@@ -156,9 +158,17 @@ def backup_existing_assets(dest_folder, dest_filename, backup_dir, media_name=No
         if os.path.exists(existing_file):
             logger.debug(f" Found existing asset: {existing_file}")
             try:
-                # Create backup filename with media name if available
+                # Create backup filename with media name, season and episode if available
                 if media_name:
-                    backup_filename = f"{media_name}_backup{ext}"
+                    # For TV shows with season and episode info
+                    if season_number and episode_number:
+                        backup_filename = f"{media_name}_S{season_number}E{episode_number}_backup{ext}"
+                    # For TV shows with only season info
+                    elif season_number:
+                        backup_filename = f"{media_name}_S{season_number}_backup{ext}"
+                    # For regular media assets (movies, show posters)
+                    else:
+                        backup_filename = f"{media_name}_backup{ext}"
                 else:
                     backup_filename = f"{dest_filename}_backup{ext}"
                     
@@ -168,7 +178,15 @@ def backup_existing_assets(dest_folder, dest_filename, backup_dir, media_name=No
                 counter = 1
                 while os.path.exists(backup_path):
                     if media_name:
-                        backup_filename = f"{media_name}_backup_{counter}{ext}"
+                        # TV shows with season and episode info
+                        if season_number and episode_number:
+                            backup_filename = f"{media_name}_S{season_number}E{episode_number}_backup_{counter}{ext}"
+                        # TV shows with only season info
+                        elif season_number:
+                            backup_filename = f"{media_name}_S{season_number}_backup_{counter}{ext}"
+                        # Regular media assets
+                        else:
+                            backup_filename = f"{media_name}_backup_{counter}{ext}"
                     else:
                         backup_filename = f"{dest_filename}_backup_{counter}{ext}"
                     backup_path = os.path.join(backup_dir, backup_filename)
