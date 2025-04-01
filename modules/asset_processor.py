@@ -324,51 +324,75 @@ class AssetProcessor:
                     score = 0
                     match_reason = ""
                     
-                    # Exact directory match (has highest priority)
-                    if file_base.lower() == dir_name.lower():
-                        score = 500
-                        match_reason = "exact directory match"
-                    # Exact match where directory IS the collection (e.g. 'After Collection')
-                    elif "collection" in dir_name.lower() and file_base.lower().replace(".jpg", "").strip() == dir_name.lower():
-                        score = 400
+                    # Log all potential matches for debugging
+                    if logger.logger.isEnabledFor(logging.DEBUG):
+                        logger.debug(f" Comparing file '{file_base}' with directory '{dir_name}'")
+                    
+                    # EXACT MATCH - Filename (without extension) matches directory name exactly
+                    exact_comparison = file_base.lower().replace(".jpg", "").replace(".jpeg", "").replace(".png", "").strip()
+                    if exact_comparison == dir_name.lower():
+                        score = 1000
+                        match_reason = "exact directory match (without extension)"
+                    # Exact match where filename IS the collection (e.g. 'After Collection.jpg' -> 'After Collection')
+                    elif file_base.lower().replace(".jpg", "").replace(".jpeg", "").replace(".png", "").strip() == dir_name.lower():
+                        score = 900
                         match_reason = "exact collection directory match"
                     # Direct match after normalization
                     elif file_name_norm == dir_name_norm:
-                        score = 300
+                        score = 800
                         match_reason = "exact match after normalization"
-                    # IMPORTANT: Check for directory that CONTAINS the word collection AND matches core name
-                    elif "collection" in dir_name.lower() and core_name.lower() in dir_name.lower().replace("collection", "").strip():
-                        score = 200
-                        match_reason = "directory with 'collection' contains core name"
-                    # One string contains the other
-                    elif file_name_norm in dir_name_norm:
-                        score = 80
-                        match_reason = "filename contained in directory name"
-                    elif dir_name_norm in file_name_norm:
-                        score = 70
-                        match_reason = "directory name contained in filename"
-                    # Match after cleaning special chars
-                    elif file_name_clean == dir_name_clean:
-                        score = 60
-                        match_reason = "match after removing special characters"
-                    # Collection-specific matching
-                    elif dir_contains_collection and file_name_clean in dir_name_clean:
-                        score = 50
-                        match_reason = "directory contains 'collection' and matches core name"
-                    elif file_contains_collection and dir_name_clean in file_name_clean:
-                        score = 40
-                        match_reason = "filename contains 'collection' and matches core name"
-                    # Very simple matching - if the directory name contains the core name
-                    elif core_name and core_name in dir_name.lower():
-                        score = 30
-                        match_reason = "directory contains core collection name"
-                    # If directory has 'collection' and we're looking for a collection
-                    elif dir_contains_collection and file_contains_collection:
-                        score = 20
-                        match_reason = "both contain 'collection'"
+                    # BOTH contain the word 'collection' and core names match
+                    elif "collection" in dir_name.lower() and "collection" in file_base.lower():
+                        # Extract core names (text before "collection")
+                        dir_core = dir_name.lower().split("collection")[0].strip()
+                        file_core = file_base.lower().split("collection")[0].strip()
+                        if dir_core == file_core:
+                            score = 700
+                            match_reason = "matching core collection names"
+                        
+                    # Log all scores for debugging
+                    if logger.logger.isEnabledFor(logging.DEBUG) and score > 0:
+                        logger.debug(f" + Potential match score: {score} ({match_reason})")
+                    
+                    # Skip all lower-quality matches if we have a good match
+                    if score < 600:  # Only proceed with lower-quality matches if no good match found
+                        # IMPORTANT: Check for directory that CONTAINS the word collection AND matches core name
+                        if "collection" in dir_name.lower() and core_name.lower() in dir_name.lower().replace("collection", "").strip():
+                            score = 500
+                            match_reason = "directory with 'collection' contains core name"
+                        # One string contains the other
+                        elif file_name_norm in dir_name_norm:
+                            score = 200
+                            match_reason = "filename contained in directory name"
+                        elif dir_name_norm in file_name_norm:
+                            score = 150
+                            match_reason = "directory name contained in filename"
+                        # Match after cleaning special chars
+                        elif file_name_clean == dir_name_clean:
+                            score = 100
+                            match_reason = "match after removing special characters"
+                        # Collection-specific matching
+                        elif dir_contains_collection and file_name_clean in dir_name_clean:
+                            score = 90
+                            match_reason = "directory contains 'collection' and matches core name"
+                        elif file_contains_collection and dir_name_clean in file_name_clean:
+                            score = 80
+                            match_reason = "filename contains 'collection' and matches core name"
+                        # Very simple matching - if the directory name contains the core name
+                        elif core_name and core_name in dir_name.lower():
+                            score = 70
+                            match_reason = "directory contains core collection name"
+                        # If directory has 'collection' and we're looking for a collection
+                        elif dir_contains_collection and file_contains_collection:
+                            score = 60
+                            match_reason = "both contain 'collection'"
+                        
+                        # Log all scores for debugging
+                        if logger.logger.isEnabledFor(logging.DEBUG) and score > 0:
+                            logger.debug(f" + Lower-tier match score: {score} ({match_reason})")
                         
                     # Only process good matches
-                    if score >= 30:  # Set threshold for matching
+                    if score >= 70:  # Set threshold for matching
                         logger.debug(f" Potential match: '{dir_name}' (score: {score}, reason: {match_reason})")
                         
                         src = os.path.join(self.process_dir, filename)
@@ -391,7 +415,7 @@ class AssetProcessor:
                                     logger.info(f" - Category: Collection")
                                     logger.info(f" - Copied to {dir_type}/{dir_name}")
                                     logger.info(f" - Renamed to {new_name}")
-                                    logger.info(f" - Match quality: {score}/100 ({match_reason})")
+                                    logger.info(f" - Match quality: {score}/1000 ({match_reason})")
                                     matched = True
                                     break
                             except Exception as e:
