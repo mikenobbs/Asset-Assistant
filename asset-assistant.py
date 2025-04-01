@@ -110,11 +110,9 @@ def main():
     
     # Compress images if enabled
     if compress_images:
-        logger.info(" Compressing and optimizing images...")
-        if debug_enabled:
-            logger.debug(" Image compression is enabled with the following settings:")
-            logger.debug(f" - Quality: {image_quality}")
-            logger.debug(f" - Process directory: {process_dir}")
+        logger.info(" Image compression is enabled with the following settings:")
+        logger.info(f" - Quality: {image_quality}")
+        logger.info(f" - Process directory: {process_dir}")
         processed_count = compress_and_convert_images(process_dir, quality=image_quality)
         if processed_count > 0:
             logger.info(f" Processed {processed_count} images")
