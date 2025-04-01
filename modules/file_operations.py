@@ -119,7 +119,7 @@ def delete_file(path):
         logger.error(f" - Failed to delete: {e}")
     return False
 
-def backup_existing_assets(dest_folder, dest_filename, backup_dir):
+def backup_existing_assets(dest_folder, dest_filename, backup_dir, media_name=None, delete_original=True):
     """
     Check if there are existing assets with supported extensions in the destination folder
     and back them up before overwriting.
@@ -128,6 +128,8 @@ def backup_existing_assets(dest_folder, dest_filename, backup_dir):
         dest_folder (str): Destination folder path
         dest_filename (str): Destination filename (without extension)
         backup_dir (str): Backup directory path
+        media_name (str, optional): Media name to use in backup filename (e.g., movie/show name)
+        delete_original (bool): Whether to delete the original file after backup
     
     Returns:
         bool: True if successful or no existing assets, False if backup failed
@@ -154,21 +156,36 @@ def backup_existing_assets(dest_folder, dest_filename, backup_dir):
         if os.path.exists(existing_file):
             logger.debug(f" Found existing asset: {existing_file}")
             try:
-                # Create backup filename with _backup suffix
-                backup_basename = os.path.basename(dest_folder)
-                backup_filename = f"{dest_filename}_backup{ext}"
+                # Create backup filename with media name if available
+                if media_name:
+                    backup_filename = f"{media_name}_backup{ext}"
+                else:
+                    backup_filename = f"{dest_filename}_backup{ext}"
+                    
                 backup_path = os.path.join(backup_dir, backup_filename)
                 
                 # Ensure the backup filename is unique
                 counter = 1
                 while os.path.exists(backup_path):
-                    backup_filename = f"{dest_filename}_backup_{counter}{ext}"
+                    if media_name:
+                        backup_filename = f"{media_name}_backup_{counter}{ext}"
+                    else:
+                        backup_filename = f"{dest_filename}_backup_{counter}{ext}"
                     backup_path = os.path.join(backup_dir, backup_filename)
                     counter += 1
                 
                 # Copy to backup location
                 shutil.copy2(existing_file, backup_path)
                 logger.info(f" Backed up existing asset: {os.path.basename(existing_file)} → {backup_filename}")
+                
+                # Delete original if requested
+                if delete_original:
+                    try:
+                        os.remove(existing_file)
+                        logger.debug(f" Deleted original file after backup: {os.path.basename(existing_file)}")
+                    except Exception as e:
+                        logger.error(f" Failed to delete original file after backup: {e}")
+                
                 backed_up = True
             except Exception as e:
                 logger.error(f" Error backing up existing asset: {e}")

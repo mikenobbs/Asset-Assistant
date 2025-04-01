@@ -224,8 +224,10 @@ class AssetProcessor:
                 # Determine likely final names based on aspect ratio
                 likely_names = ["poster", "fanart"]
                 dest_folder = os.path.join(directory, best_match)
+                # Extract media name from directory
+                media_name = best_match.strip()
                 for name in likely_names:
-                    backup_existing_assets(dest_folder, name, self.backup_dir)
+                    backup_existing_assets(dest_folder, name, self.backup_dir, media_name=media_name)
             
             if copy_file(src, dest, filename):
                 # Determine new name based on aspect ratio
@@ -431,8 +433,10 @@ class AssetProcessor:
                 # Determine likely final names based on aspect ratio
                 likely_names = ["poster", "background"]
                 dest_folder = os.path.join(best_match['directory'], best_match['dir_name'])
+                # Extract collection name from directory
+                media_name = best_match['dir_name'].strip()
                 for name in likely_names:
-                    backup_existing_assets(dest_folder, name, self.backup_dir)
+                    backup_existing_assets(dest_folder, name, self.backup_dir, media_name=media_name)
             
             if copy_file(src, dest, filename):
                 # Determine new name based on aspect ratio
@@ -484,7 +488,9 @@ class AssetProcessor:
                     else:
                         season_name = "Season00"
                     dest_folder = os.path.join(self.shows_dir, dir_name)
-                    backup_existing_assets(dest_folder, season_name, self.backup_dir)
+                    # Use show name as media name
+                    media_name = dir_name.strip()
+                    backup_existing_assets(dest_folder, season_name, self.backup_dir, media_name=media_name)
                 
                 if copy_file(src, dest, filename):
                     # Determine new name
@@ -528,7 +534,9 @@ class AssetProcessor:
                 # For episodes in Kometa, check the episode naming pattern
                 episode_name = f"S{season_number.zfill(2)}E{episode_number.zfill(2)}"
                 dest_folder = os.path.join(self.shows_dir, best_match)
-                backup_existing_assets(dest_folder, episode_name, self.backup_dir)
+                # Use show name as media name
+                media_name = best_match.strip()
+                backup_existing_assets(dest_folder, episode_name, self.backup_dir, media_name=media_name)
             
             if copy_file(src, dest, filename):
                 new_name = f"S{season_number.zfill(2)}E{episode_number.zfill(2)}" + os.path.splitext(filename)[1]
@@ -595,7 +603,9 @@ class AssetProcessor:
                     season_name = f"Season{season_number.zfill(2)}"
                 else:
                     season_name = "season-specials-poster"
-                backup_existing_assets(season_dir, season_name, self.backup_dir)
+                # Use show name as media name
+                media_name = matching_dir_name.strip()
+                backup_existing_assets(season_dir, season_name, self.backup_dir, media_name=media_name)
             
             if copy_file(src, dest, filename):
                 # Rename the file
@@ -679,7 +689,8 @@ class AssetProcessor:
                 if self.backup_dir:
                     # For Plex episodes, back up the asset with episode video name
                     backup_name = os.path.splitext(episode_video_name)[0]
-                    backup_existing_assets(season_dir, backup_name, self.backup_dir)
+                    media_name = f"{best_match} - {backup_name}".strip()
+                    backup_existing_assets(season_dir, backup_name, self.backup_dir, media_name=media_name)
                 
                 if copy_file(src, dest, filename) and rename_file(dest, new_dest):
                     logger.info(f" {filename}:")
