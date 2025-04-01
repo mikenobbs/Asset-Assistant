@@ -118,3 +118,60 @@ def delete_file(path):
     except Exception as e:
         logger.error(f" - Failed to delete: {e}")
     return False
+
+def backup_existing_assets(dest_folder, dest_filename, backup_dir):
+    """
+    Check if there are existing assets with supported extensions in the destination folder
+    and back them up before overwriting.
+    
+    Args:
+        dest_folder (str): Destination folder path
+        dest_filename (str): Destination filename (without extension)
+        backup_dir (str): Backup directory path
+    
+    Returns:
+        bool: True if successful or no existing assets, False if backup failed
+    """
+    from modules.logs import MyLogger
+    logger = MyLogger()
+    
+    # Supported extensions to check for
+    supported_extensions = ('.jpg', '.jpeg', '.png')
+    
+    # Create backup directory if it doesn't exist
+    if not os.path.exists(backup_dir):
+        try:
+            os.makedirs(backup_dir, exist_ok=True)
+        except Exception as e:
+            logger.error(f" Error creating backup directory: {e}")
+            return False
+            
+    # Check for existing assets with the same name but any supported extension
+    backed_up = False
+    
+    for ext in supported_extensions:
+        existing_file = os.path.join(dest_folder, dest_filename + ext)
+        if os.path.exists(existing_file):
+            logger.debug(f" Found existing asset: {existing_file}")
+            try:
+                # Create backup filename with _backup suffix
+                backup_basename = os.path.basename(dest_folder)
+                backup_filename = f"{dest_filename}_backup{ext}"
+                backup_path = os.path.join(backup_dir, backup_filename)
+                
+                # Ensure the backup filename is unique
+                counter = 1
+                while os.path.exists(backup_path):
+                    backup_filename = f"{dest_filename}_backup_{counter}{ext}"
+                    backup_path = os.path.join(backup_dir, backup_filename)
+                    counter += 1
+                
+                # Copy to backup location
+                shutil.copy2(existing_file, backup_path)
+                logger.info(f" Backed up existing asset: {os.path.basename(existing_file)} → {backup_filename}")
+                backed_up = True
+            except Exception as e:
+                logger.error(f" Error backing up existing asset: {e}")
+                return False
+    
+    return True
