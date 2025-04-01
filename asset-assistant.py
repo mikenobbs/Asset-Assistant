@@ -74,6 +74,22 @@ def main():
     logger = MyLogger(debug=debug_enabled)
     if debug_enabled:
         logger.info(" Debug logging enabled")
+        logger.separator(text="Configuration Details", debug=True, border=True)
+        logger.debug(" === ENVIRONMENT VARIABLES AND CONFIGURATION ===")
+        logger.debug(f" PROCESSDIR: {config.get('process')}")
+        logger.debug(f" SHOWSDIR: {config.get('shows')}")
+        logger.debug(f" MOVIESDIR: {config.get('movies')}")
+        logger.debug(f" COLLECTIONSDIR: {config.get('collections')}")
+        logger.debug(f" FAILEDDIR: {config.get('failed')}")
+        logger.debug(f" BACKUPDIR: {config.get('backup')}")
+        logger.debug(f" LOGSDIR: {config.get('logs')}")
+        logger.debug(f" ENABLE_BACKUP: {config.get('enable_backup', False)}")
+        logger.debug(f" SERVICE: {config.get('service', '')}")
+        logger.debug(f" PLEX_SPECIALS: {config.get('plex_specials')}")
+        logger.debug(f" COMPRESS_IMAGES: {config.get('compress_images', False)}")
+        logger.debug(f" IMAGE_QUALITY: {config.get('image_quality', 85)}")
+        logger.debug(f" DEBUG: {config.get('debug', False)}")
+        logger.debug(" ===============================================")
 
     # Get configuration variables
     process_dir = config['process']
