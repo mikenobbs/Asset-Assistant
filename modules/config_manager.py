@@ -120,6 +120,13 @@ class ConfigManager:
     
     def _log_config(self):
         """Log the current configuration."""
+        # Print full configuration when debug is enabled
+        if self.config.get('debug', False):
+            logger.debug(" === FULL CONFIGURATION DUMP ===")
+            for key, value in sorted(self.config.items()):
+                logger.debug(f" {key}: {value}")
+            logger.debug(" === END CONFIGURATION DUMP ===")
+        
         logger.debug(" Process directory:")
         logger.debug(f" - {self.config.get('process')}")
         

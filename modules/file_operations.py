@@ -211,6 +211,11 @@ def compress_and_convert_images(directory, quality=85):
     
     processed_count = 0
     
+    logger.debug(f" Image compression settings:")
+    logger.debug(f" - Directory: {directory}")
+    logger.debug(f" - Quality: {quality}")
+    logger.debug(f" - Supported formats: .png, .jpeg, .jpg, .bmp, .gif, .tiff")
+    
     for root, dirs, files in os.walk(directory):
         for file in files:
             if file.lower().endswith(('.png', '.jpeg', '.bmp', '.gif', '.tiff', '.jpg')):
@@ -220,20 +225,40 @@ def compress_and_convert_images(directory, quality=85):
                 new_path = os.path.join(root, new_file)
 
                 try:
+                    # Get original file size
+                    original_size = os.path.getsize(original_path)
+                    logger.debug(f" Processing '{file}':")
+                    logger.debug(f" - Original size: {original_size / 1024:.2f} KB")
+                    
                     with PIL.Image.open(original_path) as img:
+                        # Log original image details
+                        logger.debug(f" - Original dimensions: {img.width}x{img.height}")
+                        logger.debug(f" - Original format: {img.format}")
+                        logger.debug(f" - Original mode: {img.mode}")
+                        
                         # Convert image mode if necessary
                         if img.mode in ('RGBA', 'LA', 'P'):
+                            logger.debug(f" - Converting from {img.mode} to RGB mode")
                             img = img.convert("RGB")
                         # Save with optimization
                         img.save(new_path, 'JPEG', quality=quality, optimize=True)
 
+                    # Get new file size and calculate compression ratio
+                    if os.path.exists(new_path):
+                        new_size = os.path.getsize(new_path)
+                        compression_ratio = (1 - (new_size / original_size)) * 100
+                        logger.debug(f" - New size: {new_size / 1024:.2f} KB")
+                        logger.debug(f" - Compression ratio: {compression_ratio:.2f}%")
+
                     # Remove original if we changed the format
                     if new_file.lower() != file.lower():
+                        logger.debug(f" - Removing original file: {file}")
                         os.remove(original_path)
                         
                     processed_count += 1
-                    logger.debug(f" Compressed and converted '{file}' to optimized JPEG")
+                    logger.debug(f" Successfully compressed '{file}' to optimized JPEG")
                 except Exception as e:
                     logger.error(f" Failed to compress '{file}': {e}")
     
+    logger.debug(f" Image compression complete. Processed {processed_count} images.")
     return processed_count
