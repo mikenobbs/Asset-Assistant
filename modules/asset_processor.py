@@ -27,6 +27,11 @@ class AssetProcessor:
         
     def process_asset(self, filename):
         """Process a single asset file."""
+        # Special case: Direct check for collection assets by filename before using MediaMatcher
+        if "collection" in filename.lower() and self.service in ["kometa", "kodi"]:
+            logger.debug(f" Direct collection detection: '{filename}' contains 'collection'")
+            return self._process_collection(filename)
+        
         # Get file metadata from media matcher
         media_info = self.media_matcher.match_media(filename)
         
