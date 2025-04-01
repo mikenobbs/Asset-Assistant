@@ -11,6 +11,7 @@ backup: /path/to/backup/directory
 enable_backup:  # true or false, false by default
 service:  # optional: plex, kometa, emby, jellyfin, kodi
 plex_specials:  # required if using plex, true = Specials, false = Season 00
+debug: false  # Set to true to enable detailed debug logging
 
 ## Notifications ## 
 # Leave blank to disable
