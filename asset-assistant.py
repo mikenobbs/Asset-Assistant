@@ -19,7 +19,8 @@ from modules.asset_processor import AssetProcessor
 from modules.file_operations import unzip_files, process_directories, backup_file, delete_file, move_to_failed
 from modules.notifications import discord, generate_summary
 
-# Initialize logger
+# Initialize logger with default settings (debug=False)
+# The proper debug setting will be applied after loading config
 logger = MyLogger()
 
 def print_banner(version):
@@ -39,6 +40,7 @@ def main():
     # Parse command line arguments
     parser = argparse.ArgumentParser(description='Asset Assistant')
     parser.add_argument('--version', action='store_true', help='Print version and exit')
+    parser.add_argument('--debug', action='store_true', help='Enable debug logging')
     args = parser.parse_args()
 
     # Track execution time
@@ -64,6 +66,13 @@ def main():
     if not config_manager.load_config():
         sys.exit(1)
     config = config_manager.config
+    
+    # Update logger with debug setting from config or command line
+    debug_enabled = args.debug or config.get('debug', False)
+    global logger
+    logger = MyLogger(debug=debug_enabled)
+    if debug_enabled:
+        logger.info(" Debug logging enabled")
 
     # Get configuration variables
     process_dir = config['process']
