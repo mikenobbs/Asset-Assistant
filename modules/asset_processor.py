@@ -246,56 +246,86 @@ class AssetProcessor:
     
     def _process_collection(self, filename):
         """Process collection asset."""
-        if not self.collections_dir or self.service not in ["kometa", "kodi"]:
+        # Check if we have appropriate service first
+        if self.service not in ["kometa", "kodi"]:
             move_to_failed(filename, self.process_dir, self.failed_dir)
+            logger.info(f" {filename}:")
+            logger.info(f" - Category: Collection")
+            logger.info(f" - Asset skipped due to {self.service.capitalize() if self.service else 'unspecified service'} not supporting collection assets")
+            logger.info(" - Moved to failed directory")
+            logger.info("")
             return 'failed'
             
-        # Find matching collection directory
+        # Find matching collection directory - check BOTH collections_dir AND movies_dir
         matched = False
         file_base = filename.split('.')[0]
         
-        for dir_name in os.listdir(self.collections_dir):
-            # Multiple comparison strategies
-            file_name_norm = file_base.lower().replace("collection", "").strip()
-            dir_name_norm = dir_name.lower().replace("collection", "").strip()
+        # Create a list of directories to search, with their corresponding directory type
+        search_dirs = []
+        if self.collections_dir:
+            search_dirs.append((self.collections_dir, "collections"))
+        if self.movies_dir:
+            search_dirs.append((self.movies_dir, "movies"))
             
-            file_name_clean = re.sub(r'[^\w\s]', '', file_name_norm)
-            dir_name_clean = re.sub(r'[^\w\s]', '', dir_name_norm)
+        # If no valid directories to search, fail
+        if not search_dirs:
+            move_to_failed(filename, self.process_dir, self.failed_dir)
+            return 'failed'
+        
+        # Search through all potential directories
+        for directory, dir_type in search_dirs:
+            for dir_name in os.listdir(directory):
+                # Multiple comparison strategies
+                file_name_norm = file_base.lower().replace("collection", "").strip()
+                dir_name_norm = dir_name.lower().replace("collection", "").strip()
+                
+                file_name_clean = re.sub(r'[^\w\s]', '', file_name_norm)
+                dir_name_clean = re.sub(r'[^\w\s]', '', dir_name_norm)
+                
+                # Add flexible matching with "collection" in the name for better detection
+                dir_contains_collection = "collection" in dir_name.lower()
+                file_contains_collection = "collection" in file_base.lower()
+                
+                if (file_name_norm == dir_name_norm or 
+                    file_name_norm in dir_name_norm or 
+                    dir_name_norm in file_name_norm or
+                    file_name_clean == dir_name_clean or
+                    (dir_contains_collection and file_name_clean in dir_name_clean) or
+                    (file_contains_collection and dir_name_clean in file_name_clean)):
+                    
+                    src = os.path.join(self.process_dir, filename)
+                    dest = os.path.join(directory, dir_name, filename)
+                    
+                    if copy_file(src, dest, filename):
+                        # Determine new name based on aspect ratio
+                        try:
+                            with PIL.Image.open(dest) as img:
+                                width, height = img.size
+                                if height > width:
+                                    new_name = "poster" + os.path.splitext(filename)[1]
+                                else:
+                                    new_name = "background" + os.path.splitext(filename)[1]
+                                
+                                new_dest = os.path.join(directory, dir_name, new_name)
+                                rename_file(dest, new_dest)
+                                
+                                logger.info(f" {filename}:")
+                                logger.info(f" - Category: Collection")
+                                logger.info(f" - Copied to {dir_type}/{dir_name}")
+                                logger.info(f" - Renamed to {new_name}")
+                                matched = True
+                                break
+                        except Exception as e:
+                            logger.error(f" - Error processing image: {e}")
             
-            if (file_name_norm == dir_name_norm or 
-                file_name_norm in dir_name_norm or 
-                dir_name_norm in file_name_norm or
-                file_name_clean == dir_name_clean):
-                
-                src = os.path.join(self.process_dir, filename)
-                dest = os.path.join(self.collections_dir, dir_name, filename)
-                
-                if copy_file(src, dest, filename):
-                    # Determine new name based on aspect ratio
-                    try:
-                        with PIL.Image.open(dest) as img:
-                            width, height = img.size
-                            if height > width:
-                                new_name = "poster" + os.path.splitext(filename)[1]
-                            else:
-                                new_name = "background" + os.path.splitext(filename)[1]
-                            
-                            new_dest = os.path.join(self.collections_dir, dir_name, new_name)
-                            rename_file(dest, new_dest)
-                            
-                            logger.info(f" {filename}:")
-                            logger.info(f" - Category: Collection")
-                            logger.info(f" - Copied to {dir_name}")
-                            logger.info(f" - Renamed to {new_name}")
-                            matched = True
-                            break
-                    except Exception as e:
-                        logger.error(f" - Error processing image: {e}")
+            # If we found a match in this directory, no need to check others
+            if matched:
+                break
         
         if matched:
             return 'collection'
         
-        # If no match was found
+        # If no match was found in any directory
         move_to_failed(filename, self.process_dir, self.failed_dir)
         logger.info(f" {filename}:")
         logger.info(f" - Category: Collection")
