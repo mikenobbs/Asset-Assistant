@@ -1,7 +1,6 @@
 import logging, os
 from logging.handlers import RotatingFileHandler
 
-# Move this line outside the class definition
 logging.addLevelName(logging.WARNING, 'WARN')
 
 class MyLogger:
@@ -18,7 +17,7 @@ class MyLogger:
                 self._style._fmt = f"[%(asctime)s]  [{levelname}]    |%(message)-{self.screen_width}s|"
             return super().format(record)
 
-    def __init__(self, separating_character='=', screen_width=100, log_file='assistant.log'):
+    def __init__(self, separating_character='=', screen_width=100, log_file='assistant.log', debug=False):
         # Get logs directory from config
         if 'config' in globals() and config.get('logs'):
             self.log_dir = config['logs']
@@ -31,7 +30,9 @@ class MyLogger:
         self.screen_width = screen_width
         self.log_file = os.path.join(self.log_dir, log_file)
         self.logger = logging.getLogger(__name__)
-        self.logger.setLevel(logging.DEBUG)
+        
+        # Set log level based on debug parameter
+        self.logger.setLevel(logging.DEBUG if debug else logging.INFO)
         
         # Clear any existing handlers to avoid duplicates
         if self.logger.hasHandlers():

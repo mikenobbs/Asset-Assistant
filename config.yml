@@ -8,10 +8,23 @@ logs: /path/to/logs/directory
 backup: /path/to/backup/directory
 
 ## Settings ##
-enable_backup:  # true or false, false by default
+# Backup settings
+enable_backup_source: false   # Backup source files before processing
+enable_backup_destination: false   # Backup existing destination files before overwriting
+enable_backup: false  # Legacy setting, use enable_backup_source and enable_backup_destination instead
+
+# Service settings
 service:  # optional: plex, kometa, emby, jellyfin, kodi
 plex_specials:  # required if using plex, true = Specials, false = Season 00
+
+# Image processing settings
+compress_images: false  # Set to true to compress and optimize images
+image_quality: 85  # JPEG quality (1-100), default is 85
+
+# Debug settings
+debug: false  # Set to true to enable detailed debug logging
 
 ## Notifications ## 
 # Leave blank to disable
 discord_webhook: 
+discord_enabled: false

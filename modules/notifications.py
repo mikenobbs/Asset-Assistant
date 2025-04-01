@@ -30,7 +30,25 @@ def generate_summary(moved_counts, backup_enabled, total_runtime, version):
     summary += f"**Show Assets:**\n {moved_counts['show']}\n"
     summary += f"**Collection Assets:**\n {moved_counts['collection']}\n"
     summary += f"**Failures:**\n {moved_counts['failed']}\n"
-    summary += f"**Backup Enabled?**\n {backup_enabled}\n"
+    
+    # For backward compatibility when a single backup_enabled parameter is passed
+    if isinstance(backup_enabled, bool):
+        backup_source = backup_enabled
+        backup_destination = backup_enabled
+        backup_text = "Yes" if backup_enabled else "No"
+    else:
+        # Handle when we're passed a tuple of (backup_source, backup_destination)
+        backup_source, backup_destination = backup_enabled
+        if backup_source and backup_destination:
+            backup_text = "Yes (Source & Destination)"
+        elif backup_source:
+            backup_text = "Yes (Source Only)"
+        elif backup_destination:
+            backup_text = "Yes (Destination Only)"
+        else:
+            backup_text = "No"
+    
+    summary += f"**Backup Enabled?**\n {backup_text}\n"
     summary += f"**Total Run Time:**\n {total_runtime:.2f} seconds\n"
     summary += f"**Version:**\n v{version}\n"
     return summary
