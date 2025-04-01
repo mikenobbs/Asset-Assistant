@@ -4,6 +4,7 @@ Handles processing and renaming of media assets.
 """
 import os
 import re
+import logging
 import PIL.Image
 from modules.logs import MyLogger
 from modules.file_operations import copy_file, rename_file, move_to_failed
@@ -260,64 +261,127 @@ class AssetProcessor:
         matched = False
         file_base = filename.split('.')[0]
         
+        # Enhanced debugging
+        logger.debug(f" Looking for collection match for: '{file_base}'")
+        
         # Create a list of directories to search, with their corresponding directory type
         search_dirs = []
         if self.collections_dir:
             search_dirs.append((self.collections_dir, "collections"))
+            logger.debug(f" Will search collections directory: {self.collections_dir}")
         if self.movies_dir:
             search_dirs.append((self.movies_dir, "movies"))
+            logger.debug(f" Will search movies directory: {self.movies_dir}")
             
         # If no valid directories to search, fail
         if not search_dirs:
             move_to_failed(filename, self.process_dir, self.failed_dir)
+            logger.info(f" {filename}:")
+            logger.info(f" - Category: Collection")
+            logger.error(f" - No valid directories to search (collections_dir: {self.collections_dir}, movies_dir: {self.movies_dir})")
+            logger.info(" - Moved to failed directory")
+            logger.info("")
             return 'failed'
+        
+        # Extract the core collection name without the word "collection"
+        core_name = file_base.lower().replace("collection", "").strip()
+        logger.debug(f" Core collection name (without 'collection'): '{core_name}'")
         
         # Search through all potential directories
         for directory, dir_type in search_dirs:
-            for dir_name in os.listdir(directory):
-                # Multiple comparison strategies
-                file_name_norm = file_base.lower().replace("collection", "").strip()
-                dir_name_norm = dir_name.lower().replace("collection", "").strip()
-                
-                file_name_clean = re.sub(r'[^\w\s]', '', file_name_norm)
-                dir_name_clean = re.sub(r'[^\w\s]', '', dir_name_norm)
-                
-                # Add flexible matching with "collection" in the name for better detection
-                dir_contains_collection = "collection" in dir_name.lower()
-                file_contains_collection = "collection" in file_base.lower()
-                
-                if (file_name_norm == dir_name_norm or 
-                    file_name_norm in dir_name_norm or 
-                    dir_name_norm in file_name_norm or
-                    file_name_clean == dir_name_clean or
-                    (dir_contains_collection and file_name_clean in dir_name_clean) or
-                    (file_contains_collection and dir_name_clean in file_name_clean)):
-                    
-                    src = os.path.join(self.process_dir, filename)
-                    dest = os.path.join(directory, dir_name, filename)
-                    
-                    if copy_file(src, dest, filename):
-                        # Determine new name based on aspect ratio
-                        try:
-                            with PIL.Image.open(dest) as img:
-                                width, height = img.size
-                                if height > width:
-                                    new_name = "poster" + os.path.splitext(filename)[1]
-                                else:
-                                    new_name = "background" + os.path.splitext(filename)[1]
-                                
-                                new_dest = os.path.join(directory, dir_name, new_name)
-                                rename_file(dest, new_dest)
-                                
-                                logger.info(f" {filename}:")
-                                logger.info(f" - Category: Collection")
-                                logger.info(f" - Copied to {dir_type}/{dir_name}")
-                                logger.info(f" - Renamed to {new_name}")
-                                matched = True
-                                break
-                        except Exception as e:
-                            logger.error(f" - Error processing image: {e}")
+            logger.debug(f" Searching in {dir_type} directory: {directory}")
             
+            try:
+                dir_items = os.listdir(directory)
+                logger.debug(f" Found {len(dir_items)} items in {dir_type} directory")
+                
+                # Log all directory names for debugging
+                if logger.logger.isEnabledFor(logging.DEBUG):
+                    for i, dirname in enumerate(dir_items):
+                        if "collection" in dirname.lower():
+                            logger.debug(f"   - Dir {i+1}: '{dirname}' (contains 'collection')")
+                        elif core_name in dirname.lower():
+                            logger.debug(f"   - Dir {i+1}: '{dirname}' (contains core name '{core_name}')")
+                
+                for dir_name in dir_items:
+                    # Multiple comparison strategies
+                    file_name_norm = file_base.lower().replace("collection", "").strip()
+                    dir_name_norm = dir_name.lower().replace("collection", "").strip()
+                    
+                    file_name_clean = re.sub(r'[^\w\s]', '', file_name_norm)
+                    dir_name_clean = re.sub(r'[^\w\s]', '', dir_name_norm)
+                    
+                    # Add flexible matching with "collection" in the name for better detection
+                    dir_contains_collection = "collection" in dir_name.lower()
+                    file_contains_collection = "collection" in file_base.lower()
+                    
+                    # Create a scoring system to rank the quality of matches
+                    score = 0
+                    match_reason = ""
+                    
+                    # Exact match after normalization
+                    if file_name_norm == dir_name_norm:
+                        score = 100
+                        match_reason = "exact match after normalization"
+                    # One string contains the other
+                    elif file_name_norm in dir_name_norm:
+                        score = 80
+                        match_reason = "filename contained in directory name"
+                    elif dir_name_norm in file_name_norm:
+                        score = 70
+                        match_reason = "directory name contained in filename"
+                    # Match after cleaning special chars
+                    elif file_name_clean == dir_name_clean:
+                        score = 60
+                        match_reason = "match after removing special characters"
+                    # Collection-specific matching
+                    elif dir_contains_collection and file_name_clean in dir_name_clean:
+                        score = 50
+                        match_reason = "directory contains 'collection' and matches core name"
+                    elif file_contains_collection and dir_name_clean in file_name_clean:
+                        score = 40
+                        match_reason = "filename contains 'collection' and matches core name"
+                    # Very simple matching - if the directory name contains the core name
+                    elif core_name and core_name in dir_name.lower():
+                        score = 30
+                        match_reason = "directory contains core collection name"
+                    # If directory has 'collection' and we're looking for a collection
+                    elif dir_contains_collection and file_contains_collection:
+                        score = 20
+                        match_reason = "both contain 'collection'"
+                        
+                    # Only process good matches
+                    if score >= 30:  # Set threshold for matching
+                        logger.debug(f" Potential match: '{dir_name}' (score: {score}, reason: {match_reason})")
+                        
+                        src = os.path.join(self.process_dir, filename)
+                        dest = os.path.join(directory, dir_name, filename)
+                        
+                        if copy_file(src, dest, filename):
+                            # Determine new name based on aspect ratio
+                            try:
+                                with PIL.Image.open(dest) as img:
+                                    width, height = img.size
+                                    if height > width:
+                                        new_name = "poster" + os.path.splitext(filename)[1]
+                                    else:
+                                        new_name = "background" + os.path.splitext(filename)[1]
+                                    
+                                    new_dest = os.path.join(directory, dir_name, new_name)
+                                    rename_file(dest, new_dest)
+                                    
+                                    logger.info(f" {filename}:")
+                                    logger.info(f" - Category: Collection")
+                                    logger.info(f" - Copied to {dir_type}/{dir_name}")
+                                    logger.info(f" - Renamed to {new_name}")
+                                    logger.info(f" - Match quality: {score}/100 ({match_reason})")
+                                    matched = True
+                                    break
+                            except Exception as e:
+                                logger.error(f" - Error processing image: {e}")
+            except Exception as e:
+                logger.error(f" Error accessing directory {directory}: {e}")
+                
             # If we found a match in this directory, no need to check others
             if matched:
                 break
