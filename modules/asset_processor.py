@@ -263,7 +263,6 @@ class AssetProcessor:
             return 'failed'
             
         # Find matching collection directory - check BOTH collections_dir AND movies_dir
-        matched = False
         file_base = filename.split('.')[0]
         
         # Enhanced debugging
@@ -292,6 +291,15 @@ class AssetProcessor:
         core_name = file_base.lower().replace("collection", "").strip()
         logger.debug(f" Core collection name (without 'collection'): '{core_name}'")
         
+        # Keep track of the best match across all directories
+        best_match = {
+            'score': 0,
+            'directory': None,
+            'dir_type': None,
+            'dir_name': None,
+            'reason': None
+        }
+        
         # Search through all potential directories
         for directory, dir_type in search_dirs:
             logger.debug(f" Searching in {dir_type} directory: {directory}")
@@ -303,8 +311,8 @@ class AssetProcessor:
                 # Log all directory names for debugging
                 if logger.logger.isEnabledFor(logging.DEBUG):
                     for i, dirname in enumerate(dir_items):
-                        if "collection" in dirname.lower():
-                            logger.debug(f"   - Dir {i+1}: '{dirname}' (contains 'collection')")
+                        if "collection" in dirname.lower() or dirname.lower() == file_base.lower().replace(".jpg", "").replace(".jpeg", "").replace(".png", "").strip():
+                            logger.debug(f"   - Dir {i+1}: '{dirname}' (contains 'collection' or exact match)")
                         elif core_name in dirname.lower():
                             logger.debug(f"   - Dir {i+1}: '{dirname}' (contains core name '{core_name}')")
                 
@@ -390,45 +398,46 @@ class AssetProcessor:
                         # Log all scores for debugging
                         if logger.logger.isEnabledFor(logging.DEBUG) and score > 0:
                             logger.debug(f" + Lower-tier match score: {score} ({match_reason})")
-                        
-                    # Only process good matches
-                    if score >= 70:  # Set threshold for matching
-                        logger.debug(f" Potential match: '{dir_name}' (score: {score}, reason: {match_reason})")
-                        
-                        src = os.path.join(self.process_dir, filename)
-                        dest = os.path.join(directory, dir_name, filename)
-                        
-                        if copy_file(src, dest, filename):
-                            # Determine new name based on aspect ratio
-                            try:
-                                with PIL.Image.open(dest) as img:
-                                    width, height = img.size
-                                    if height > width:
-                                        new_name = "poster" + os.path.splitext(filename)[1]
-                                    else:
-                                        new_name = "background" + os.path.splitext(filename)[1]
-                                    
-                                    new_dest = os.path.join(directory, dir_name, new_name)
-                                    rename_file(dest, new_dest)
-                                    
-                                    logger.info(f" {filename}:")
-                                    logger.info(f" - Category: Collection")
-                                    logger.info(f" - Copied to {dir_type}/{dir_name}")
-                                    logger.info(f" - Renamed to {new_name}")
-                                    logger.info(f" - Match quality: {score}/1000 ({match_reason})")
-                                    matched = True
-                                    break
-                            except Exception as e:
-                                logger.error(f" - Error processing image: {e}")
+                    
+                    # Check if this is better than our current best match
+                    if score >= 70 and score > best_match['score']:  # Must exceed threshold and be better than current best
+                        logger.debug(f" New best match: '{dir_name}' (score: {score}, reason: {match_reason})")
+                        best_match = {
+                            'score': score,
+                            'directory': directory,
+                            'dir_type': dir_type,
+                            'dir_name': dir_name,
+                            'reason': match_reason
+                        }
             except Exception as e:
                 logger.error(f" Error accessing directory {directory}: {e}")
-                
-            # If we found a match in this directory, no need to check others
-            if matched:
-                break
         
-        if matched:
-            return 'collection'
+        # Process the best match, if any
+        if best_match['score'] > 0:
+            src = os.path.join(self.process_dir, filename)
+            dest = os.path.join(best_match['directory'], best_match['dir_name'], filename)
+            
+            if copy_file(src, dest, filename):
+                # Determine new name based on aspect ratio
+                try:
+                    with PIL.Image.open(dest) as img:
+                        width, height = img.size
+                        if height > width:
+                            new_name = "poster" + os.path.splitext(filename)[1]
+                        else:
+                            new_name = "background" + os.path.splitext(filename)[1]
+                        
+                        new_dest = os.path.join(best_match['directory'], best_match['dir_name'], new_name)
+                        rename_file(dest, new_dest)
+                        
+                        logger.info(f" {filename}:")
+                        logger.info(f" - Category: Collection")
+                        logger.info(f" - Copied to {best_match['dir_type']}/{best_match['dir_name']}")
+                        logger.info(f" - Renamed to {new_name}")
+                        logger.info(f" - Match quality: {best_match['score']}/1000 ({best_match['reason']})")
+                        return 'collection'
+                except Exception as e:
+                    logger.error(f" - Error processing image: {e}")
         
         # If no match was found in any directory
         move_to_failed(filename, self.process_dir, self.failed_dir)
