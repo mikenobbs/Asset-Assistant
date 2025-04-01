@@ -60,7 +60,9 @@ class ConfigManager:
             'plex_specials': None if os.getenv('PLEX_SPECIALS', '') == '' else os.getenv('PLEX_SPECIALS', '').lower() == 'true',
             'discord_webhook': os.getenv('DISCORD_WEBHOOK', ''),
             'discord_enabled': os.getenv('DISCORD_ENABLED', 'false').lower() == 'true',
-            'debug': os.getenv('DEBUG', 'false').lower() == 'true'
+            'debug': os.getenv('DEBUG', 'false').lower() == 'true',
+            'compress_images': os.getenv('COMPRESS_IMAGES', 'false').lower() == 'true',
+            'image_quality': int(os.getenv('IMAGE_QUALITY', '85'))
         }
     
     def _validate_config(self):
