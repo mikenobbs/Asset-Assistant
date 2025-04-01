@@ -81,7 +81,8 @@ def main():
         logger.debug(f" FAILEDDIR: {config.get('failed')}")
         logger.debug(f" BACKUPDIR: {config.get('backup')}")
         logger.debug(f" LOGSDIR: {config.get('logs')}")
-        logger.debug(f" ENABLE_BACKUP: {config.get('enable_backup', False)}")
+        logger.debug(f" ENABLE_BACKUP_SOURCE: {config.get('enable_backup_source', False)}")
+        logger.debug(f" ENABLE_BACKUP_DESTINATION: {config.get('enable_backup_destination', False)}")
         logger.debug(f" SERVICE: {config.get('service', '')}")
         logger.debug(f" PLEX_SPECIALS: {config.get('plex_specials')}")
         logger.debug(f" COMPRESS_IMAGES: {config.get('compress_images', False)}")
@@ -95,10 +96,17 @@ def main():
     collections_dir = config['collections']
     failed_dir = config['failed']
     backup_dir = config['backup']
-    backup_enabled = config.get('enable_backup', False)
+    backup_source = config.get('enable_backup_source', False)
+    backup_destination = config.get('enable_backup_destination', False)
     service = config.get('service')
     compress_images = config.get('compress_images', False)
     image_quality = config.get('image_quality', 85)
+    
+    # Legacy support for the older 'enable_backup' setting
+    if 'enable_backup' in config and not backup_source and not backup_destination:
+        backup_source = config.get('enable_backup', False)
+        backup_destination = config.get('enable_backup', False)
+        logger.debug(" Using legacy 'enable_backup' setting for both source and destination backups")
     
     logger.separator(text="Processing Images", debug=False, border=True)
 
@@ -165,8 +173,9 @@ def main():
         
         # Clean up the original file
         if result_category != 'failed':
-            if backup_enabled:
+            if backup_source:
                 backup_file(filename, process_dir, backup_dir)
+                logger.info(f" - Source file '{filename}' backed up")
             else:
                 delete_file(os.path.join(process_dir, filename))
                 
@@ -188,7 +197,7 @@ def main():
     logger.info(f' Failures: {moved_counts["failed"]}')
 
     # Generate summary for notifications
-    summary = generate_summary(moved_counts, backup_enabled, total_runtime, version)
+    summary = generate_summary(moved_counts, (backup_source, backup_destination), total_runtime, version)
 
     # Send Discord notification if configured
     discord_webhook = config.get('discord_webhook')

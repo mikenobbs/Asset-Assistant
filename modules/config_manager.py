@@ -26,6 +26,14 @@ class ConfigManager:
                 with open(config_path, 'r') as f:
                     self.config = yaml.safe_load(f)
                     logger.info(f" Configuration loaded from {config_path}")
+                    
+                    # Support for the split backup settings from the config file
+                    # If only legacy 'enable_backup' is present, use it for both new settings
+                    if 'enable_backup' in self.config and 'enable_backup_source' not in self.config:
+                        self.config['enable_backup_source'] = self.config['enable_backup']
+                    if 'enable_backup' in self.config and 'enable_backup_destination' not in self.config:
+                        self.config['enable_backup_destination'] = self.config['enable_backup']
+                    
                     break
             except FileNotFoundError:
                 continue
@@ -55,7 +63,9 @@ class ConfigManager:
             'failed': os.getenv('FAILEDDIR', '/config/failed'),
             'backup': os.getenv('BACKUPDIR', '/config/backup'),
             'logs': os.getenv('LOGSDIR', '/config/logs'),
-            'enable_backup': os.getenv('ENABLE_BACKUP', 'false').lower() == 'true',
+            'enable_backup_source': os.getenv('ENABLE_BACKUP_SOURCE', 'false').lower() == 'true',
+            'enable_backup_destination': os.getenv('ENABLE_BACKUP_DESTINATION', 'false').lower() == 'true',
+            'enable_backup': os.getenv('ENABLE_BACKUP', 'false').lower() == 'true',  # Legacy support
             'service': os.getenv('SERVICE', ''),
             'plex_specials': None if os.getenv('PLEX_SPECIALS', '') == '' else os.getenv('PLEX_SPECIALS', '').lower() == 'true',
             'discord_webhook': os.getenv('DISCORD_WEBHOOK', ''),

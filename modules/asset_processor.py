@@ -25,6 +25,11 @@ class AssetProcessor:
         self.backup_dir = config.get('backup')
         self.service = config.get('service')
         self.plex_specials = config.get('plex_specials')
+        self.backup_destination = config.get('enable_backup_destination', False)
+        
+        # Legacy support for older enable_backup setting
+        if not self.backup_destination and config.get('enable_backup', False):
+            self.backup_destination = True
         
     def process_asset(self, filename):
         """Process a single asset file."""
@@ -227,7 +232,9 @@ class AssetProcessor:
                 # Extract media name from directory
                 media_name = best_match.strip()
                 for name in likely_names:
-                    backup_existing_assets(dest_folder, name, self.backup_dir, media_name=media_name)
+                    # Backup existing files if destination backup is enabled
+                    if self.backup_destination:
+                        backup_existing_assets(dest_folder, name, self.backup_dir, media_name=media_name)
             
             if copy_file(src, dest, filename):
                 # Determine new name based on aspect ratio
@@ -434,9 +441,11 @@ class AssetProcessor:
                 likely_names = ["poster", "background"]
                 dest_folder = os.path.join(best_match['directory'], best_match['dir_name'])
                 # Extract collection name from directory
-                media_name = best_match['dir_name'].strip()
+                media_name = os.path.basename(best_match['dir_name'])
                 for name in likely_names:
-                    backup_existing_assets(dest_folder, name, self.backup_dir, media_name=media_name)
+                    # Backup existing files if destination backup is enabled
+                    if self.backup_destination:
+                        backup_existing_assets(dest_folder, name, self.backup_dir, media_name=media_name)
             
             if copy_file(src, dest, filename):
                 # Determine new name based on aspect ratio
@@ -490,7 +499,9 @@ class AssetProcessor:
                     dest_folder = os.path.join(self.shows_dir, dir_name)
                     # Use show name as media name
                     media_name = dir_name.strip()
-                    backup_existing_assets(dest_folder, season_name, self.backup_dir, media_name=media_name)
+                    # Backup existing files if destination backup is enabled
+                    if self.backup_destination:
+                        backup_existing_assets(dest_folder, season_name, self.backup_dir, media_name=media_name)
                 
                 if copy_file(src, dest, filename):
                     # Determine new name
@@ -536,7 +547,9 @@ class AssetProcessor:
                 dest_folder = os.path.join(self.shows_dir, best_match)
                 # Use show name as media name
                 media_name = best_match.strip()
-                backup_existing_assets(dest_folder, episode_name, self.backup_dir, media_name=media_name)
+                # Backup existing files if destination backup is enabled
+                if self.backup_destination:
+                    backup_existing_assets(dest_folder, episode_name, self.backup_dir, media_name=media_name)
             
             if copy_file(src, dest, filename):
                 new_name = f"S{season_number.zfill(2)}E{episode_number.zfill(2)}" + os.path.splitext(filename)[1]
@@ -605,7 +618,9 @@ class AssetProcessor:
                     season_name = "season-specials-poster"
                 # Use show name as media name
                 media_name = matching_dir_name.strip()
-                backup_existing_assets(season_dir, season_name, self.backup_dir, media_name=media_name)
+                # Backup existing files if destination backup is enabled
+                if self.backup_destination:
+                    backup_existing_assets(season_dir, season_name, self.backup_dir, media_name=media_name)
             
             if copy_file(src, dest, filename):
                 # Rename the file
@@ -690,7 +705,9 @@ class AssetProcessor:
                     # For Plex episodes, back up the asset with episode video name
                     backup_name = os.path.splitext(episode_video_name)[0]
                     media_name = f"{best_match} - {backup_name}".strip()
-                    backup_existing_assets(season_dir, backup_name, self.backup_dir, media_name=media_name)
+                    # Backup existing files if destination backup is enabled
+                    if self.backup_destination:
+                        backup_existing_assets(season_dir, backup_name, self.backup_dir, media_name=media_name)
                 
                 if copy_file(src, dest, filename) and rename_file(dest, new_dest):
                     logger.info(f" {filename}:")
