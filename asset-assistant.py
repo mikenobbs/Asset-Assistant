@@ -37,6 +37,8 @@ def print_banner(version):
 
 def main():
     """Main function to run the Asset Assistant."""
+    global logger
+    
     # Parse command line arguments
     parser = argparse.ArgumentParser(description='Asset Assistant')
     parser.add_argument('--version', action='store_true', help='Print version and exit')
@@ -69,7 +71,6 @@ def main():
     
     # Update logger with debug setting from config or command line
     debug_enabled = args.debug or config.get('debug', False)
-    global logger
     logger = MyLogger(debug=debug_enabled)
     if debug_enabled:
         logger.info(" Debug logging enabled")
