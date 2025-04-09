@@ -120,12 +120,8 @@ def main():
     if compress_images:
         logger.info(" Image compression is enabled with the following settings:")
         logger.info(f" - Quality: {image_quality}")
-        logger.info(f" - Process directory: {process_dir}")
+        logger.info("")
         processed_count = compress_and_convert_images(process_dir, quality=image_quality)
-        if processed_count > 0:
-            logger.info(f" Processed {processed_count} images")
-        else:
-            logger.info(" No images were processed")
 
     # Setup media matcher and asset processor
     media_matcher = MediaMatcher(movies_dir, shows_dir, collections_dir)
@@ -159,7 +155,12 @@ def main():
             move_to_failed(filename, process_dir, failed_dir)
             moved_counts['failed'] += 1
 
-    logger.info(f" Found {len(files_to_process)} images to process")
+    if len(files_to_process) > 0:
+        logger.info(f" Found {len(files_to_process)} image(s) to process")
+        logger.info("")
+    else:
+        logger.info(" No image files found to process")
+        logger.info("")
 
     # Process all files in the stable snapshot
     for filename in files_to_process:
@@ -175,7 +176,7 @@ def main():
         if result_category != 'failed':
             if backup_source:
                 backup_file(filename, process_dir, backup_dir)
-                logger.info(f" - Source file '{filename}' backed up")
+                #logger.info(f" - Source file '{filename}' backed up")
             else:
                 delete_file(os.path.join(process_dir, filename))
                 

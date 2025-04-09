@@ -49,6 +49,4 @@ def generate_summary(moved_counts, backup_enabled, total_runtime, version):
             backup_text = "No"
     
     summary += f"**Backup Enabled?**\n {backup_text}\n"
-    summary += f"**Total Run Time:**\n {total_runtime:.2f} seconds\n"
-    summary += f"**Version:**\n v{version}\n"
     return summary
