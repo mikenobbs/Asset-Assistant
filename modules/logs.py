@@ -3,6 +3,9 @@ from logging.handlers import RotatingFileHandler
 
 logging.addLevelName(logging.WARNING, 'WARN')
 
+# Singleton logger instance that will be shared across modules
+logger_instance = None
+
 class MyLogger:
     class CustomFormatter(logging.Formatter):
         def __init__(self, screen_width, *args, **kwargs):
@@ -34,10 +37,13 @@ class MyLogger:
         self.separating_character = separating_character
         self.screen_width = screen_width
         self.log_file = os.path.join(self.log_dir, log_file)
-        self.logger = logging.getLogger(__name__)
+        
+        # Use the root logger to ensure all modules use the same logger
+        self.logger = logging.getLogger()
         
         # Set log level based on debug parameter
-        self.logger.setLevel(logging.DEBUG if debug else logging.INFO)
+        log_level = logging.DEBUG if debug else logging.INFO
+        self.logger.setLevel(log_level)
         
         # Clear any existing handlers to avoid duplicates
         if self.logger.hasHandlers():
@@ -45,12 +51,16 @@ class MyLogger:
             
         self.main_handler = self._get_handler(self.log_file)
 
+        # Create console handler with the same level as the logger
         console_handler = logging.StreamHandler()
-        console_handler.setLevel(logging.DEBUG)
+        console_handler.setLevel(log_level)
         console_formatter = self.CustomFormatter(self.screen_width)
         console_handler.setFormatter(console_formatter)
         self.logger.addHandler(console_handler)
+        
+        # Create file handler with the same level as the logger
         file_handler = self.main_handler
+        file_handler.setLevel(log_level)
         file_formatter = self.CustomFormatter(self.screen_width)
         file_handler.setFormatter(file_formatter)
         self.logger.addHandler(file_handler)
@@ -116,3 +126,30 @@ class MyLogger:
                     self.logger.removeHandler(existing_handler)
             handler.doRollover()
         return handler
+
+
+def get_logger(debug=None):
+    """
+    Get or create the singleton logger instance.
+    If debug is provided, it will update the logger's debug setting.
+    
+    Args:
+        debug (bool, optional): If provided, update the logger's debug setting
+        
+    Returns:
+        MyLogger: The singleton logger instance
+    """
+    global logger_instance
+    
+    if logger_instance is None:
+        logger_instance = MyLogger(debug=debug if debug is not None else False)
+    elif debug is not None:
+        # Update existing logger with new debug setting
+        log_level = logging.DEBUG if debug else logging.INFO
+        logger_instance.logger.setLevel(log_level)
+        
+        # Also update all handlers to ensure consistency
+        for handler in logger_instance.logger.handlers:
+            handler.setLevel(log_level)
+        
+    return logger_instance
