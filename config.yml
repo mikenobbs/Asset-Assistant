@@ -1,11 +1,11 @@
 ## Paths ##
-process: /path/to/process/directory
-shows: /path/to/shows/directory
-movies: /path/to/movies/directory
-collections: /path/to/collections/directory
-failed: /path/to/failed/directory
-logs: /path/to/logs/directory
-backup: /path/to/backup/directory
+process:   # Path to process directory
+shows:   # Path to shows directory
+movies:   # Path to movies directory
+collections:   # Path to collections directory
+failed:   # Path to failed directory
+logs:   # Path to logs directory
+backup:   # Path to backup directory
 
 ## Settings ##
 # Backup settings
@@ -27,4 +27,3 @@ debug: false  # Set to true to enable detailed debug logging
 ## Notifications ## 
 # Leave blank to disable
 discord_webhook: 
-discord_enabled: false
