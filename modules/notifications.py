@@ -25,12 +25,19 @@ def discord(summary, discord_webhook, version, total_runtime):
     except Exception as e:
         print(f"Error sending Discord notification: {str(e)}")
 
-def generate_summary(moved_counts, backup_enabled, total_runtime, version):
+def generate_summary(moved_counts, compress_images, image_quality, backup_enabled):
     summary = f"**Movie Assets:**\n {moved_counts['movie']}\n"
     summary += f"**Show Assets:**\n {moved_counts['show']}\n"
     summary += f"**Collection Assets:**\n {moved_counts['collection']}\n"
     summary += f"**Failures:**\n {moved_counts['failed']}\n"
     
+    if compress_images:
+        compress_text = f"True (Quality: {image_quality})"
+    else:
+        compress_text = "False"
+
+    summary += f"**Compression Enabled?:**\n {compress_text}\n"
+
     # For backward compatibility when a single backup_enabled parameter is passed
     if isinstance(backup_enabled, bool):
         backup_source = backup_enabled
