@@ -4,9 +4,10 @@ Handles loading and validating configuration from files and environment variable
 """
 import os
 import yaml
-from modules.logs import MyLogger
+from modules.logs import get_logger
 
-logger = MyLogger()
+# Get the singleton logger instance
+logger = get_logger()
 
 class ConfigManager:
     """Configuration manager for Asset Assistant."""
@@ -14,6 +15,7 @@ class ConfigManager:
     def __init__(self):
         self.config = None
         self.config_paths = [
+            '/config/config.yml',  # Docker volume mount path
             os.path.join('config', 'config.yml'),  # /config/config.yml
             'config.yml'  # ./config.yml
         ]
@@ -27,6 +29,9 @@ class ConfigManager:
                     self.config = yaml.safe_load(f)
                     logger.info(f" Configuration loaded from {config_path}")
                     
+                    # Set default values for certain directories
+                    self._set_default_paths()
+                    
                     # Support for the split backup settings from the config file
                     # If only legacy 'enable_backup' is present, use it for both new settings
                     if 'enable_backup' in self.config and 'enable_backup_source' not in self.config:
@@ -38,12 +43,16 @@ class ConfigManager:
             except FileNotFoundError:
                 continue
         
-        # Fall back to environment variables
+        # If no config file was found, fall back to environment variables
         if not self.config:
             logger.warning(f" Config file not found. Tried: {', '.join(self.config_paths)}")
             logger.info(" Falling back to environment variables...")
             self.config = self._load_config_from_env()
             logger.info(" Configuration loaded from environment variables")
+        else:
+            # If config file was found, check for environment variables that should override
+            self._override_with_env_vars()
+            logger.info(" Applied environment variable overrides to configuration")
         
         # Validate configuration
         if not self.config:
@@ -69,11 +78,89 @@ class ConfigManager:
             'service': os.getenv('SERVICE', ''),
             'plex_specials': None if os.getenv('PLEX_SPECIALS', '') == '' else os.getenv('PLEX_SPECIALS', '').lower() == 'true',
             'discord_webhook': os.getenv('DISCORD_WEBHOOK', ''),
-            'discord_enabled': os.getenv('DISCORD_ENABLED', 'false').lower() == 'true',
             'debug': os.getenv('DEBUG', 'false').lower() == 'true',
             'compress_images': os.getenv('COMPRESS_IMAGES', 'false').lower() == 'true',
             'image_quality': int(os.getenv('IMAGE_QUALITY', '85'))
         }
+    
+    def _set_default_paths(self):
+        """Set default values for certain directories if they are not specified."""
+        # Set default values for directories that should be in /config by default
+        if 'backup' not in self.config or not self.config['backup']:
+            self.config['backup'] = '/config/backup'
+            
+        if 'logs' not in self.config or not self.config['logs']:
+            self.config['logs'] = '/config/logs'
+            
+        if 'process' not in self.config or not self.config['process']:
+            self.config['process'] = '/config/process'
+            
+        if 'failed' not in self.config or not self.config['failed']:
+            self.config['failed'] = '/config/failed'
+            
+    def _override_with_env_vars(self):
+        """Override config file settings with environment variables if they exist."""
+        # Path overrides
+        if os.getenv('PROCESSDIR'):
+            self.config['process'] = os.getenv('PROCESSDIR')
+            logger.debug(f" - Overriding process directory with: {self.config['process']}")
+            
+        if os.getenv('SHOWSDIR'):
+            self.config['shows'] = os.getenv('SHOWSDIR')
+            logger.debug(f" - Overriding shows directory with: {self.config['shows']}")
+            
+        if os.getenv('MOVIESDIR'):
+            self.config['movies'] = os.getenv('MOVIESDIR')
+            logger.debug(f" - Overriding movies directory with: {self.config['movies']}")
+            
+        if os.getenv('COLLECTIONSDIR'):
+            self.config['collections'] = os.getenv('COLLECTIONSDIR')
+            logger.debug(f" - Overriding collections directory with: {self.config['collections']}")
+            
+        if os.getenv('FAILEDDIR'):
+            self.config['failed'] = os.getenv('FAILEDDIR')
+            logger.debug(f" - Overriding failed directory with: {self.config['failed']}")
+            
+        if os.getenv('BACKUPDIR'):
+            self.config['backup'] = os.getenv('BACKUPDIR')
+            logger.debug(f" - Overriding backup directory with: {self.config['backup']}")
+            
+        if os.getenv('LOGSDIR'):
+            self.config['logs'] = os.getenv('LOGSDIR')
+            logger.debug(f" - Overriding logs directory with: {self.config['logs']}")
+            
+        # Settings overrides
+        if os.getenv('ENABLE_BACKUP_SOURCE'):
+            self.config['enable_backup_source'] = os.getenv('ENABLE_BACKUP_SOURCE').lower() == 'true'
+            logger.debug(f" - Overriding enable_backup_source with: {self.config['enable_backup_source']}")
+            
+        if os.getenv('ENABLE_BACKUP_DESTINATION'):
+            self.config['enable_backup_destination'] = os.getenv('ENABLE_BACKUP_DESTINATION').lower() == 'true'
+            logger.debug(f" - Overriding enable_backup_destination with: {self.config['enable_backup_destination']}")
+            
+        if os.getenv('SERVICE'):
+            self.config['service'] = os.getenv('SERVICE')
+            logger.debug(f" - Overriding service with: {self.config['service']}")
+            
+        if os.getenv('PLEX_SPECIALS'):
+            self.config['plex_specials'] = os.getenv('PLEX_SPECIALS').lower() == 'true'
+            logger.debug(f" - Overriding plex_specials with: {self.config['plex_specials']}")
+            
+        if os.getenv('DISCORD_WEBHOOK'):
+            self.config['discord_webhook'] = os.getenv('DISCORD_WEBHOOK')
+            logger.debug(" - Overriding discord_webhook")
+            
+        if os.getenv('DEBUG'):
+            self.config['debug'] = os.getenv('DEBUG').lower() == 'true'
+            logger.debug(f" - Overriding debug with: {self.config['debug']}")
+            
+        if os.getenv('COMPRESS_IMAGES'):
+            self.config['compress_images'] = os.getenv('COMPRESS_IMAGES').lower() == 'true'
+            logger.debug(f" - Overriding compress_images with: {self.config['compress_images']}")
+            
+        if os.getenv('IMAGE_QUALITY'):
+            self.config['image_quality'] = int(os.getenv('IMAGE_QUALITY'))
+            logger.debug(f" - Overriding image_quality with: {self.config['image_quality']}")
     
     def _validate_config(self):
         """Validate the configuration."""
