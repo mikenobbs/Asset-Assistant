@@ -5,9 +5,10 @@ Contains functions for moving, copying, and backup operations.
 import os
 import shutil
 import zipfile
-from modules.logs import MyLogger
+from modules.logs import get_logger
 
-logger = MyLogger()
+# Get the singleton logger instance
+logger = get_logger()
 
 def unzip_files(process_dir, failed_dir):
     """Extract all zip files in the process directory."""
@@ -119,6 +120,105 @@ def delete_file(path):
         logger.error(f" - Failed to delete: {e}")
     return False
 
+def handle_existing_files(dest_folder, dest_filename, backup_dir=None, enable_backup=False, media_name=None, season_number=None, episode_number=None):
+    """
+    Handle existing files at the destination - either back them up or delete them.
+    
+    Args:
+        dest_folder (str): Destination folder path
+        dest_filename (str): Destination filename (without extension)
+        backup_dir (str, optional): Backup directory path (required if enable_backup is True)
+        enable_backup (bool): Whether to back up files before deleting them
+        media_name (str, optional): Media name to use in backup filename (e.g., movie/show name)
+        season_number (str, optional): Season number for TV shows
+        episode_number (str, optional): Episode number for TV shows
+    
+    Returns:
+        bool: True if successful, False if failed
+    """
+    from modules.logs import get_logger
+    logger = get_logger()
+    
+    # Supported extensions to check for
+    supported_extensions = ('.jpg', '.jpeg', '.png')
+    
+    # Check if backup is enabled and backup directory exists
+    if enable_backup:
+        if not backup_dir:
+            logger.error(" - Backup directory not specified but backup is enabled")
+            return False
+            
+        # Create backup directory if it doesn't exist
+        if not os.path.exists(backup_dir):
+            try:
+                os.makedirs(backup_dir, exist_ok=True)
+            except Exception as e:
+                logger.error(f" - Error creating backup directory: {e}")
+                return False
+    
+    # Check for existing assets with the same name but any supported extension
+    handled_files = False
+    
+    for ext in supported_extensions:
+        existing_file = os.path.join(dest_folder, dest_filename + ext)
+        if os.path.exists(existing_file):
+            logger.debug(f" - Found existing asset: {existing_file}")
+            
+            # If backup is enabled, back up the file
+            if enable_backup:
+                try:
+                    # Create backup filename with media name, season and episode if available
+                    if media_name:
+                        # For TV shows with season and episode info
+                        if season_number and episode_number:
+                            backup_filename = f"{media_name}_S{season_number}E{episode_number}_backup{ext}"
+                        # For TV shows with only season info
+                        elif season_number:
+                            backup_filename = f"{media_name}_S{season_number}_backup{ext}"
+                        # For regular media assets (movies, show posters)
+                        else:
+                            backup_filename = f"{media_name}_backup{ext}"
+                    else:
+                        backup_filename = f"{dest_filename}_backup{ext}"
+                        
+                    backup_path = os.path.join(backup_dir, backup_filename)
+                    
+                    # Ensure the backup filename is unique
+                    counter = 1
+                    while os.path.exists(backup_path):
+                        if media_name:
+                            # TV shows with season and episode info
+                            if season_number and episode_number:
+                                backup_filename = f"{media_name}_S{season_number}E{episode_number}_backup_{counter}{ext}"
+                            # TV shows with only season info
+                            elif season_number:
+                                backup_filename = f"{media_name}_S{season_number}_backup_{counter}{ext}"
+                            # Regular media assets
+                            else:
+                                backup_filename = f"{media_name}_backup_{counter}{ext}"
+                        else:
+                            backup_filename = f"{dest_filename}_backup_{counter}{ext}"
+                        backup_path = os.path.join(backup_dir, backup_filename)
+                        counter += 1
+                    
+                    # Copy to backup location
+                    shutil.copy2(existing_file, backup_path)
+                    logger.info(f" - Backed up existing asset: {os.path.basename(existing_file)} → {backup_filename}")
+                except Exception as e:
+                    logger.error(f" - Error backing up existing asset: {e}")
+                    return False
+            
+            # Delete the original file (whether backed up or not)
+            try:
+                os.remove(existing_file)
+                logger.info(" - Removed existing asset")
+                handled_files = True
+            except Exception as e:
+                logger.error(f" - Failed to delete file: {e}")
+                return False
+    
+    return True
+
 def backup_existing_assets(dest_folder, dest_filename, backup_dir, media_name=None, season_number=None, episode_number=None, delete_original=True):
     """
     Check if there are existing assets with supported extensions in the destination folder
@@ -136,8 +236,8 @@ def backup_existing_assets(dest_folder, dest_filename, backup_dir, media_name=No
     Returns:
         bool: True if successful or no existing assets, False if backup failed
     """
-    from modules.logs import MyLogger
-    logger = MyLogger()
+    from modules.logs import get_logger
+    logger = get_logger()
     
     # Supported extensions to check for
     supported_extensions = ('.jpg', '.jpeg', '.png')
@@ -147,7 +247,7 @@ def backup_existing_assets(dest_folder, dest_filename, backup_dir, media_name=No
         try:
             os.makedirs(backup_dir, exist_ok=True)
         except Exception as e:
-            logger.error(f" Error creating backup directory: {e}")
+            logger.error(f" - Error creating backup directory: {e}")
             return False
             
     # Check for existing assets with the same name but any supported extension
@@ -156,7 +256,7 @@ def backup_existing_assets(dest_folder, dest_filename, backup_dir, media_name=No
     for ext in supported_extensions:
         existing_file = os.path.join(dest_folder, dest_filename + ext)
         if os.path.exists(existing_file):
-            logger.debug(f" Found existing asset: {existing_file}")
+            logger.debug(f" - Found existing asset: {existing_file}")
             try:
                 # Create backup filename with media name, season and episode if available
                 if media_name:
@@ -194,19 +294,19 @@ def backup_existing_assets(dest_folder, dest_filename, backup_dir, media_name=No
                 
                 # Copy to backup location
                 shutil.copy2(existing_file, backup_path)
-                logger.info(f" Backed up existing asset: {os.path.basename(existing_file)} → {backup_filename}")
+                logger.info(f" - Backed up existing asset: {os.path.basename(existing_file)} → {backup_filename}")
                 
                 # Delete original if requested
                 if delete_original:
                     try:
                         os.remove(existing_file)
-                        logger.debug(f" Deleted original file after backup: {os.path.basename(existing_file)}")
+                        logger.debug(f" - Deleted original file after backup: {os.path.basename(existing_file)}")
                     except Exception as e:
-                        logger.error(f" Failed to delete original file after backup: {e}")
+                        logger.error(f" - Failed to delete original file after backup: {e}")
                 
                 backed_up = True
             except Exception as e:
-                logger.error(f" Error backing up existing asset: {e}")
+                logger.error(f" - Error backing up existing asset: {e}")
                 return False
     
     return True
@@ -224,15 +324,30 @@ def compress_and_convert_images(directory, quality=85):
     """
     import os
     import PIL.Image
-    from modules.logs import MyLogger
-    logger = MyLogger()
+    # Use the existing logger instance from this module
+    global logger
+
+    # Log compression settings at the start
+    logger.info(" Image compression is enabled with the following settings:")
+    logger.info(f" - Quality: {quality}")
+    logger.debug(" - Supported formats: .png, .jpeg, .jpg, .bmp, .gif, .tiff")
+    logger.info("")
     
     processed_count = 0
     
-    logger.debug(f" Image compression settings:")
-    logger.debug(f" - Directory: {directory}")
-    logger.debug(f" - Quality: {quality}")
-    logger.debug(f" - Supported formats: .png, .jpeg, .jpg, .bmp, .gif, .tiff")
+    # Count images that can be compressed first
+    images_to_compress = 0
+    for root, dirs, files in os.walk(directory):
+        for file in files:
+            if file.lower().endswith(('.png', '.jpeg', '.jpg', '.bmp', '.gif', '.tiff')):
+                images_to_compress += 1
+    
+    if images_to_compress > 0:
+        logger.info(f" Found {images_to_compress} image(s) to compress")
+        logger.info("")
+    else:
+        logger.info(" No images to compress")
+        logger.info("")
     
     for root, dirs, files in os.walk(directory):
         for file in files:
@@ -245,14 +360,13 @@ def compress_and_convert_images(directory, quality=85):
                 try:
                     # Get original file size
                     original_size = os.path.getsize(original_path)
-                    logger.debug(f" Processing '{file}':")
+                    logger.debug(f" Compressing '{file}':")
                     logger.debug(f" - Original size: {original_size / 1024:.2f} KB")
                     
                     with PIL.Image.open(original_path) as img:
                         # Log original image details
                         logger.debug(f" - Original dimensions: {img.width}x{img.height}")
                         logger.debug(f" - Original format: {img.format}")
-                        logger.debug(f" - Original mode: {img.mode}")
                         
                         # Convert image mode if necessary
                         if img.mode in ('RGBA', 'LA', 'P'):
@@ -274,9 +388,11 @@ def compress_and_convert_images(directory, quality=85):
                         os.remove(original_path)
                         
                     processed_count += 1
-                    logger.debug(f" Successfully compressed '{file}' to optimized JPEG")
+                    logger.debug(f" - Successfully compressed to optimized JPEG")
                 except Exception as e:
-                    logger.error(f" Failed to compress '{file}': {e}")
+                    logger.error(f" - Failed to compress: {e}")
+                logger.debug("")
     
-    logger.debug(f" Image compression complete. Processed {processed_count} images.")
+    logger.info(f" Image compression complete. Compressed {processed_count} image(s).")
+    logger.info("")
     return processed_count
