@@ -6,10 +6,11 @@ import os
 import re
 import logging
 import PIL.Image
-from modules.logs import MyLogger
-from modules.file_operations import copy_file, rename_file, move_to_failed, backup_existing_assets
+from modules.logs import get_logger
+from modules.file_operations import copy_file, rename_file, move_to_failed, backup_existing_assets, handle_existing_files
 
-logger = MyLogger()
+# Get the singleton logger instance
+logger = get_logger()
 
 class AssetProcessor:
     """Processes media assets and handles appropriate renaming."""
@@ -35,7 +36,7 @@ class AssetProcessor:
         """Process a single asset file."""
         # Special case: Direct check for collection assets by filename before using MediaMatcher
         if "collection" in filename.lower() and self.service in ["kometa", "kodi"]:
-            logger.debug(f" Direct collection detection: '{filename}' contains 'collection'")
+            logger.debug(f" - Direct collection detection: '{filename}' contains 'collection'")
             return self._process_collection(filename)
         
         # Get file metadata from media matcher
@@ -76,7 +77,6 @@ class AssetProcessor:
     def _handle_failed(self, filename, category):
         """Handle files that couldn't be categorized."""
         move_to_failed(filename, self.process_dir, self.failed_dir)
-        logger.info(f" {filename}:")
         if category == 'skip':
             logger.info(" - Asset skipped due to 'service' not being specified")
         elif category == 'not_supported':
@@ -109,7 +109,7 @@ class AssetProcessor:
                 exact_match = f"{file_name} ({file_year})"
                 if exact_match in movie_dirs:
                     best_match = exact_match
-                    logger.debug(f" Using exact match: '{exact_match}'")
+                    logger.debug(f" - Using exact match: '{exact_match}'")
                 
                 # If no exact match, try more flexible matching using the same variants as MediaMatcher
                 if not best_match:
@@ -154,7 +154,7 @@ class AssetProcessor:
                                         file_var in dir_var or 
                                         dir_var in file_var):
                                         best_match = dir_name
-                                        logger.debug(f" Using flexible match: '{file_name}' -> '{dir_name}'")
+                                        logger.debug(f" - Using flexible match: '{file_name}' -> '{dir_name}'")
                                         break
                                 if best_match:
                                     break
@@ -224,7 +224,7 @@ class AssetProcessor:
             src = os.path.join(self.process_dir, filename)
             dest = os.path.join(directory, best_match, filename)
             
-            # Check for and backup existing assets before copying
+            # Check for and handle existing assets before copying
             if self.backup_dir:
                 # Determine likely final names based on aspect ratio
                 likely_names = ["poster", "fanart"]
@@ -232,9 +232,14 @@ class AssetProcessor:
                 # Extract media name from directory
                 media_name = best_match.strip()
                 for name in likely_names:
-                    # Backup existing files if destination backup is enabled
-                    if self.backup_destination:
-                        backup_existing_assets(dest_folder, name, self.backup_dir, media_name=media_name)
+                    # Handle existing files - back them up if enabled, or just delete them
+                    handle_existing_files(
+                        dest_folder=dest_folder,
+                        dest_filename=name,
+                        backup_dir=self.backup_dir,
+                        enable_backup=self.backup_destination,
+                        media_name=media_name
+                    )
             
             if copy_file(src, dest, filename):
                 # Determine new name based on aspect ratio
@@ -248,8 +253,6 @@ class AssetProcessor:
                         
                         new_dest = os.path.join(directory, best_match, new_name)
                         rename_file(dest, new_dest)
-                        
-                        logger.info(f" {filename}:")
                         logger.info(f" - Category: {category.capitalize()}")
                         logger.info(f" - Copied to {best_match}")
                         logger.info(f" - Renamed to {new_name}")
@@ -261,8 +264,6 @@ class AssetProcessor:
             
         # If we got here, no match was found
         move_to_failed(filename, self.process_dir, self.failed_dir)
-        logger.info(f" {filename}:")
-        logger.info(f" - Category: {category.capitalize()}")
         logger.error(" - No matching directory found")
         logger.info(" - Moved to failed directory")
         logger.info("")
@@ -273,8 +274,7 @@ class AssetProcessor:
         # Check if we have appropriate service first
         if self.service not in ["kometa", "kodi"]:
             move_to_failed(filename, self.process_dir, self.failed_dir)
-            logger.info(f" {filename}:")
-            logger.info(f" - Category: Collection")
+            logger.info(" - Category: Collection")
             logger.info(f" - Asset skipped due to {self.service.capitalize() if self.service else 'unspecified service'} not supporting collection assets")
             logger.info(" - Moved to failed directory")
             logger.info("")
@@ -284,22 +284,20 @@ class AssetProcessor:
         file_base = filename.split('.')[0]
         
         # Enhanced debugging
-        logger.debug(f" Looking for collection match for: '{file_base}'")
+        logger.debug(f" - Looking for directory: '{file_base}'")
         
         # Create a list of directories to search, with their corresponding directory type
         search_dirs = []
         if self.collections_dir:
             search_dirs.append((self.collections_dir, "collections"))
-            logger.debug(f" Will search collections directory: {self.collections_dir}")
+            logger.debug(f" - Will search collections directory: {self.collections_dir}")
         if self.movies_dir:
             search_dirs.append((self.movies_dir, "movies"))
-            logger.debug(f" Will search movies directory: {self.movies_dir}")
+            logger.debug(f" - Will search movies directory: {self.movies_dir}")
             
         # If no valid directories to search, fail
         if not search_dirs:
             move_to_failed(filename, self.process_dir, self.failed_dir)
-            logger.info(f" {filename}:")
-            logger.info(f" - Category: Collection")
             logger.error(f" - No valid directories to search (collections_dir: {self.collections_dir}, movies_dir: {self.movies_dir})")
             logger.info(" - Moved to failed directory")
             logger.info("")
@@ -307,7 +305,7 @@ class AssetProcessor:
         
         # Extract the core collection name without the word "collection"
         core_name = file_base.lower().replace("collection", "").strip()
-        logger.debug(f" Core collection name (without 'collection'): '{core_name}'")
+        logger.debug(f" - Core collection name (without 'collection'): '{core_name}'")
         
         # Keep track of the best match across all directories
         best_match = {
@@ -320,19 +318,19 @@ class AssetProcessor:
         
         # Search through all potential directories
         for directory, dir_type in search_dirs:
-            logger.debug(f" Searching in {dir_type} directory: {directory}")
+            logger.debug(f" - Searching in {dir_type} directory: {directory}")
             
             try:
                 dir_items = os.listdir(directory)
-                logger.debug(f" Found {len(dir_items)} items in {dir_type} directory")
+                logger.debug(f" - Found {len(dir_items)} items in {dir_type} directory")
                 
                 # Log all directory names for debugging
                 if logger.logger.isEnabledFor(logging.DEBUG):
                     for i, dirname in enumerate(dir_items):
                         if "collection" in dirname.lower() or dirname.lower() == file_base.lower().replace(".jpg", "").replace(".jpeg", "").replace(".png", "").strip():
-                            logger.debug(f"   - Dir {i+1}: '{dirname}' (contains 'collection' or exact match)")
+                            logger.debug(f" - Dir {i+1}: '{dirname}' (contains 'collection' or exact match)")
                         elif core_name in dirname.lower():
-                            logger.debug(f"   - Dir {i+1}: '{dirname}' (contains core name '{core_name}')")
+                            logger.debug(f" - Dir {i+1}: '{dirname}' (contains core name '{core_name}')")
                 
                 for dir_name in dir_items:
                     # Multiple comparison strategies
@@ -352,7 +350,7 @@ class AssetProcessor:
                     
                     # Log all potential matches for debugging
                     if logger.logger.isEnabledFor(logging.DEBUG):
-                        logger.debug(f" Comparing file '{file_base}' with directory '{dir_name}'")
+                        logger.debug(f" - Comparing file '{file_base}' with directory '{dir_name}'")
                     
                     # EXACT MATCH - Filename (without extension) matches directory name exactly
                     exact_comparison = file_base.lower().replace(".jpg", "").replace(".jpeg", "").replace(".png", "").strip()
@@ -378,7 +376,7 @@ class AssetProcessor:
                         
                     # Log all scores for debugging
                     if logger.logger.isEnabledFor(logging.DEBUG) and score > 0:
-                        logger.debug(f" + Potential match score: {score} ({match_reason})")
+                        logger.debug(f" - Potential match score: {score} ({match_reason})")
                     
                     # Skip all lower-quality matches if we have a good match
                     if score < 600:  # Only proceed with lower-quality matches if no good match found
@@ -415,11 +413,11 @@ class AssetProcessor:
                         
                         # Log all scores for debugging
                         if logger.logger.isEnabledFor(logging.DEBUG) and score > 0:
-                            logger.debug(f" + Lower-tier match score: {score} ({match_reason})")
+                            logger.debug(f" - Lower-tier match score: {score} ({match_reason})")
                     
                     # Check if this is better than our current best match
                     if score >= 70 and score > best_match['score']:  # Must exceed threshold and be better than current best
-                        logger.debug(f" New best match: '{dir_name}' (score: {score}, reason: {match_reason})")
+                        logger.debug(f" - New best match: '{dir_name}' (score: {score}, reason: {match_reason})")
                         best_match = {
                             'score': score,
                             'directory': directory,
@@ -428,14 +426,14 @@ class AssetProcessor:
                             'reason': match_reason
                         }
             except Exception as e:
-                logger.error(f" Error accessing directory {directory}: {e}")
+                logger.error(f" - Error accessing directory {directory}: {e}")
         
         # Process the best match, if any
         if best_match['score'] > 0:
             src = os.path.join(self.process_dir, filename)
             dest = os.path.join(best_match['directory'], best_match['dir_name'], filename)
             
-            # Check for and backup existing assets before copying
+            # Check for and handle existing assets before copying
             if self.backup_dir:
                 # Determine likely final names based on aspect ratio
                 likely_names = ["poster", "background"]
@@ -443,9 +441,14 @@ class AssetProcessor:
                 # Extract collection name from directory
                 media_name = os.path.basename(best_match['dir_name'])
                 for name in likely_names:
-                    # Backup existing files if destination backup is enabled
-                    if self.backup_destination:
-                        backup_existing_assets(dest_folder, name, self.backup_dir, media_name=media_name)
+                    # Handle existing files - back them up if enabled, or just delete them
+                    handle_existing_files(
+                        dest_folder=dest_folder,
+                        dest_filename=name,
+                        backup_dir=self.backup_dir,
+                        enable_backup=self.backup_destination,
+                        media_name=media_name
+                    )
             
             if copy_file(src, dest, filename):
                 # Determine new name based on aspect ratio
@@ -459,9 +462,7 @@ class AssetProcessor:
                         
                         new_dest = os.path.join(best_match['directory'], best_match['dir_name'], new_name)
                         rename_file(dest, new_dest)
-                        
-                        logger.info(f" {filename}:")
-                        logger.info(f" - Category: Collection")
+                        logger.info(" - Category: Collection")
                         logger.info(f" - Copied to {best_match['dir_type']}/{best_match['dir_name']}")
                         logger.info(f" - Renamed to {new_name}")
                         logger.info(f" - Match quality: {best_match['score']}/1000 ({best_match['reason']})")
@@ -471,8 +472,6 @@ class AssetProcessor:
         
         # If no match was found in any directory
         move_to_failed(filename, self.process_dir, self.failed_dir)
-        logger.info(f" {filename}:")
-        logger.info(f" - Category: Collection")
         logger.error(f" - No matching collection directory found")
         logger.info(" - Moved to failed directory")
         logger.info("")
@@ -489,7 +488,7 @@ class AssetProcessor:
                 src = os.path.join(self.process_dir, filename)
                 dest = os.path.join(self.shows_dir, dir_name, filename)
                 
-                # Check for and backup existing assets before copying
+                # Check for and handle existing assets before copying
                 if self.backup_dir:
                     # For seasons, we need to check the most likely season name format
                     if season_number:
@@ -499,9 +498,15 @@ class AssetProcessor:
                     dest_folder = os.path.join(self.shows_dir, dir_name)
                     # Use show name as media name
                     media_name = dir_name.strip()
-                    # Backup existing files if destination backup is enabled
-                    if self.backup_destination:
-                        backup_existing_assets(dest_folder, season_name, self.backup_dir, media_name=media_name, season_number=season_number)
+                    # Handle existing files - back them up if enabled, or just delete them
+                    handle_existing_files(
+                        dest_folder=dest_folder,
+                        dest_filename=season_name,
+                        backup_dir=self.backup_dir,
+                        enable_backup=self.backup_destination,
+                        media_name=media_name,
+                        season_number=season_number
+                    )
                 
                 if copy_file(src, dest, filename):
                     # Determine new name
@@ -512,17 +517,13 @@ class AssetProcessor:
                     
                     new_dest = os.path.join(self.shows_dir, dir_name, new_name)
                     rename_file(dest, new_dest)
-                    
-                    logger.info(f" {filename}:")
-                    logger.info(f" - Category: Season")
+                    logger.info(" - Category: Season")
                     logger.info(f" - Copied to {dir_name}")
                     logger.info(f" - Renamed to {new_name}")
                     return 'season'
         
         # If no match was found
         move_to_failed(filename, self.process_dir, self.failed_dir)
-        logger.info(f" {filename}:")
-        logger.info(f" - Category: Season")
         logger.error(f" - No matching show directory found")
         logger.info(" - Moved to failed directory")
         logger.info("")
@@ -540,32 +541,35 @@ class AssetProcessor:
             src = os.path.join(self.process_dir, filename)
             dest = os.path.join(self.shows_dir, best_match, filename)
             
-            # Check for and backup existing assets before copying
+            # Check for and handle existing assets before copying
             if self.backup_dir:
                 # For episodes in Kometa, check the episode naming pattern
                 episode_name = f"S{season_number.zfill(2)}E{episode_number.zfill(2)}"
                 dest_folder = os.path.join(self.shows_dir, best_match)
                 # Use show name as media name
                 media_name = best_match.strip()
-                # Backup existing files if destination backup is enabled
-                if self.backup_destination:
-                    backup_existing_assets(dest_folder, episode_name, self.backup_dir, media_name=media_name, season_number=season_number, episode_number=episode_number)
+                # Handle existing files - back them up if enabled, or just delete them
+                handle_existing_files(
+                    dest_folder=dest_folder,
+                    dest_filename=episode_name,
+                    backup_dir=self.backup_dir,
+                    enable_backup=self.backup_destination,
+                    media_name=media_name,
+                    season_number=season_number,
+                    episode_number=episode_number
+                )
             
             if copy_file(src, dest, filename):
                 new_name = f"S{season_number.zfill(2)}E{episode_number.zfill(2)}" + os.path.splitext(filename)[1]
                 new_dest = os.path.join(self.shows_dir, best_match, new_name)
                 rename_file(dest, new_dest)
-                
-                logger.info(f" {filename}:")
-                logger.info(f" - Category: Episode")
+                logger.info(" - Category: Episode")
                 logger.info(f" - Copied to {best_match}")
                 logger.info(f" - Renamed to {new_name}")
                 return 'episode'
         
         # If no match was found
         move_to_failed(filename, self.process_dir, self.failed_dir)
-        logger.info(f" {filename}:")
-        logger.info(f" - Category: Episode")
         logger.error(f" - No matching show directory found")
         logger.info(" - Moved to failed directory")
         logger.info("")
@@ -609,7 +613,7 @@ class AssetProcessor:
             src = os.path.join(self.process_dir, filename)
             dest = os.path.join(season_dir, filename)
             
-            # Check for and backup existing assets before copying
+            # Check for and handle existing assets before copying
             if self.backup_dir:
                 # For Plex seasons, check the appropriate season naming
                 if season_number:
@@ -618,9 +622,15 @@ class AssetProcessor:
                     season_name = "season-specials-poster"
                 # Use show name as media name
                 media_name = matching_dir_name.strip()
-                # Backup existing files if destination backup is enabled
-                if self.backup_destination:
-                    backup_existing_assets(season_dir, season_name, self.backup_dir, media_name=media_name, season_number=season_number)
+                # Handle existing files - back them up if enabled, or just delete them
+                handle_existing_files(
+                    dest_folder=season_dir,
+                    dest_filename=season_name,
+                    backup_dir=self.backup_dir,
+                    enable_backup=self.backup_destination,
+                    media_name=media_name,
+                    season_number=season_number
+                )
             
             if copy_file(src, dest, filename):
                 # Rename the file
@@ -631,17 +641,13 @@ class AssetProcessor:
                 
                 new_dest = os.path.join(season_dir, new_name)
                 rename_file(dest, new_dest)
-                
-                logger.info(f" {filename}:")
-                logger.info(f" - Category: Season")
+                logger.info(" - Category: Season")
                 logger.info(f" - Copied to {matching_dir_name}/{season_dir_name}")
                 logger.info(f" - Renamed to {new_name}")
                 return 'season'
         
         # If no match was found
         move_to_failed(filename, self.process_dir, self.failed_dir)
-        logger.info(f" {filename}:")
-        logger.info(f" - Category: Season")
         logger.error(f" - No matching show directory found")
         logger.info(" - Moved to failed directory")
         logger.info("")
@@ -676,8 +682,7 @@ class AssetProcessor:
             season_dir = os.path.join(show_dir, season_dir_name)
             if not os.path.exists(season_dir):
                 move_to_failed(filename, self.process_dir, self.failed_dir)
-                logger.info(f" {filename}:")
-                logger.info(f" - Category: Episode")
+                logger.info(" - Category: Season")
                 logger.error(f" - {season_dir_name} does not exist in {best_match}")
                 logger.info(" - Moved to failed directory")
                 logger.info("")
@@ -700,25 +705,30 @@ class AssetProcessor:
                 dest = os.path.join(season_dir, filename)
                 new_dest = os.path.join(season_dir, episode_video_name)
                 
-                # Check for and backup existing assets before copying
+                # Check for and handle existing assets before copying
                 if self.backup_dir:
-                    # For Plex episodes, back up the asset with episode video name
+                    # For Plex episodes, handle the asset with episode video name
                     backup_name = os.path.splitext(episode_video_name)[0]
                     media_name = f"{best_match} - {backup_name}".strip()
-                    # Backup existing files if destination backup is enabled
-                    if self.backup_destination:
-                        backup_existing_assets(season_dir, backup_name, self.backup_dir, media_name=media_name, season_number=season_number, episode_number=episode_number)
+                    # Handle existing files - back them up if enabled, or just delete them
+                    handle_existing_files(
+                        dest_folder=season_dir,
+                        dest_filename=backup_name,
+                        backup_dir=self.backup_dir,
+                        enable_backup=self.backup_destination,
+                        media_name=media_name,
+                        season_number=season_number,
+                        episode_number=episode_number
+                    )
                 
                 if copy_file(src, dest, filename) and rename_file(dest, new_dest):
-                    logger.info(f" {filename}:")
-                    logger.info(f" - Category: Episode")
+                    logger.info(" - Category: Episode")
                     logger.info(f" - Copied to {best_match}/{season_dir_name}")
                     logger.info(f" - Renamed to {episode_video_name}")
                     return 'episode'
             else:
                 move_to_failed(filename, self.process_dir, self.failed_dir)
-                logger.info(f" {filename}:")
-                logger.info(f" - Category: Episode")
+                logger.info(" - Category: Episode")
                 logger.error(f" - Corresponding video file not found in {best_match}/{season_dir_name}")
                 logger.info(" - Moved to failed directory")
                 logger.info("")
@@ -726,8 +736,6 @@ class AssetProcessor:
         
         # If no match was found
         move_to_failed(filename, self.process_dir, self.failed_dir)
-        logger.info(f" {filename}:")
-        logger.info(f" - Category: Episode")
         logger.error(f" - No matching show directory found")
         logger.info(" - Moved to failed directory")
         logger.info("")
