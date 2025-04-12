@@ -44,6 +44,13 @@ RUN groupadd -g ${PGID} appuser \
 RUN mkdir -p /config /config/process /config/shows /config/movies /config/collections /config/failed /config/backup /config/logs \
  && chown -R appuser:appuser /config
 
+# Copy default config.yml to the app directory (will be copied to volume by entrypoint script)
+COPY --chown=appuser:appuser config.yml /app/config.yml.default
+
+# Copy entrypoint script
+COPY --chown=appuser:appuser entrypoint.sh /entrypoint.sh
+RUN chmod +x /entrypoint.sh
+
 # Copy application files
 COPY --chown=appuser:appuser . /app
 
@@ -54,4 +61,4 @@ WORKDIR /app
 USER appuser
 
 VOLUME /config
-ENTRYPOINT ["/tini", "-s", "python3", "/app/asset-assistant.py", "--"]
+ENTRYPOINT ["/tini", "-s", "/entrypoint.sh", "python3", "/app/asset-assistant.py"]
