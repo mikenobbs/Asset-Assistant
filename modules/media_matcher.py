@@ -4,18 +4,22 @@ Contains functions for matching media files with appropriate directories.
 """
 import os
 import re
-from modules.logs import MyLogger
-
-logger = MyLogger()
+from modules.logs import get_logger
 
 class MediaMatcher:
-    def __init__(self, movies_dir=None, shows_dir=None, collections_dir=None):
+    def __init__(self, movies_dir=None, shows_dir=None, collections_dir=None, debug=None):
         self.movies_dir = movies_dir
         self.shows_dir = shows_dir
         self.collections_dir = collections_dir
         
+        # Store debug setting
+        self.debug = debug
+        
     def match_media(self, filename):
         """Determine the category of a media file and extract relevant information."""
+        # Get the logger instance with our debug setting
+        logger = get_logger(debug=self.debug)
+        
         # Define patterns
         season_pattern = re.compile(r'(?:^|\s|-)\s*Season\s+(\d+)', re.IGNORECASE)
         episode_pattern = re.compile(r'S(\d+)[\s\.]?E(\d+)', re.IGNORECASE)
@@ -36,12 +40,14 @@ class MediaMatcher:
         episode_number = None
         show_name = None
         show_year = None
+
+        logger.info(f" {filename}:")
         
         # Extract media name and year if available
         if media_match:
             show_name = media_match.group(1).strip()
             show_year = media_match.group(2).strip()
-            logger.debug(f" Extracted media name: '{show_name}', year: '{show_year}'")
+            logger.debug(f" - Extracted media name: '{show_name}', year: '{show_year}'")
         
         # Check if it's a movie
         if media_match and self.movies_dir:
@@ -52,7 +58,7 @@ class MediaMatcher:
         # Check if it's a collection
         if category is None and collection_match and self.collections_dir:
             collection_name = collection_match.group(1).strip()
-            logger.debug(f" Detected possible collection: '{collection_name}'")
+            logger.debug(f" - Detected possible collection: '{collection_name}'")
             
             if self._find_collection_match(filename, collection_name):
                 category = 'collection'
@@ -78,7 +84,7 @@ class MediaMatcher:
                 category = 'episode'
                 season_number = episode_match.group(1)
                 episode_number = episode_match.group(2)
-                logger.debug(f" Found episode S{season_number}E{episode_number}")
+                logger.debug(f" - Found episode S{season_number}E{episode_number}")
                 
                 if show_name and not self._find_show_directory(show_name, show_year):
                     category = None
@@ -90,7 +96,7 @@ class MediaMatcher:
                 show_dir = self._find_show_directory(show_name, show_year)
                 if show_dir:
                     category = 'show'
-                    logger.debug(f" Detected main show poster for '{show_name} ({show_year})'")
+                    logger.debug(f" - Detected main show poster for '{show_name} ({show_year})'")
         
         return {
             'category': category,
@@ -120,7 +126,10 @@ class MediaMatcher:
         
     def _find_movie_match(self, movie_name, movie_year):
         """Find matching movie directory."""
-        if not self.movies_dir:
+        # Get the logger instance with our debug setting
+        logger = get_logger(debug=self.debug)
+        
+        if not self.movies_dir or not movie_name:
             return False
             
         movie_variants = self._create_name_variants(movie_name)
@@ -143,20 +152,23 @@ class MediaMatcher:
                         if (movie_var == dir_var or 
                             movie_var in dir_var or 
                             dir_var in movie_var):
-                            logger.debug(f" Found movie match: '{dir_name}' for '{movie_name} ({movie_year})'")
+                            logger.debug(f" - Found match: '{dir_name}")
                             return True
                             
                 # Try normalized versions as a fallback
                 movie_normalized = re.sub(r'\s+', '', movie_name.lower().replace("-", ""))
                 dir_normalized = re.sub(r'\s+', '', dir_name_clean.lower().replace("-", ""))
                 if movie_normalized == dir_normalized:
-                    logger.debug(f" Found movie match using normalized names: '{dir_name}' for '{movie_name} ({movie_year})'")
+                    logger.debug(f" - Found match using normalized names: '{dir_name}")
                     return True
                     
         return False
         
     def _find_collection_match(self, filename, collection_name=None):
         """Find matching collection directory."""
+        # Get the logger instance with our debug setting
+        logger = get_logger(debug=self.debug)
+        
         if not self.collections_dir:
             return False
             
@@ -181,18 +193,21 @@ class MediaMatcher:
                 file_name_norm in dir_name_norm or 
                 dir_name_norm in file_name_norm or
                 file_name_clean == dir_name_clean):
-                logger.debug(f" Found collection match: '{dir_name}' for '{filename}'")
+                logger.debug(f" - Found collection match: '{dir_name}' for '{filename}'")
                 return True
                 
         return False
         
     def _find_show_directory(self, show_name, show_year):
         """Find matching TV show directory."""
+        # Get the logger instance with our debug setting
+        logger = get_logger(debug=self.debug)
+        
         if not self.shows_dir or not show_name:
             return None
             
         expected_dir = f"{show_name} ({show_year})" if show_year else show_name
-        logger.debug(f" Looking for show directory: {expected_dir}")
+        logger.debug(f" - Looking for directory: {expected_dir}")
         
         # First try exact match
         if expected_dir and os.path.exists(os.path.join(self.shows_dir, expected_dir)):
@@ -235,6 +250,9 @@ class MediaMatcher:
         
     def find_best_show_directory(self, filename, show_name=None, show_year=None):
         """Find the best matching show directory for a filename."""
+        # Get the logger instance with our debug setting
+        logger = get_logger(debug=self.debug)
+        
         if not self.shows_dir:
             return None
             
