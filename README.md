@@ -14,7 +14,7 @@
   <a href="https://ko-fi.com/mikenobbs" target="_blank"><img src="https://images2.imgbox.com/ad/d8/0Ulu9hEi_o.png" width="250" alt="Support Me On Ko-Fi"/></a>
 </p>
 
-Asset-Assistant (AA) is a simple python script designed to categorise, move and rename artwork for your personal media server. Add 1000's of images without the need to manually drag and drop them into individual directories, giving you more time to actually enjoy your media.
+**AssetAssistant** is a simple python script designed to categorise, move and rename artwork for your personal media server. Add 1000's of images without the need to manually drag and drop them into individual directories, giving you more time to actually enjoy your media.
 
 The script is designed primarily to use images from [The Poster Database (TPDb)](https://theposterdb.com/) and [MediUX](https://mediux.pro/) as they use a straightforward naming scheme of `Title (year)`, which *should* align with naming of your media folders. The script then compares the filename with the directory name and starts the moving and renaming process. For Movies/Shows/Collections, both posters and backgrounds are supported, with the images being dynamically renamed based on their dimensions. Season and episode renaming is dependent on the service you are using.
 
@@ -116,7 +116,7 @@ To use this script you will need to edit the following variables in your config.
 `discord_webhook`: (Optional) Discord webhook URL for notifications after every run
 
 > [!IMPORTANT]
-> All directories (process/movies/shows/collections) must be unique for the script to function properly. For `Kodi`, this guide [here](https://kodi.wiki/view/Movie_set_information_folder) outlines the collection directory process, which you'll want to point AA at. For `Kometa`, you may need to adjust your setup slightly in order to achieve the separate directories. Below is an example of how to achieve this:
+> All directories (process/movies/shows/collections) must be unique for the script to function properly. For `Kodi`, this guide [here](https://kodi.wiki/view/Movie_set_information_folder) outlines the collection directory process, which you'll want to point **AssetAssistant** at. For `Kometa`, you may need to adjust your setup slightly in order to achieve the separate directories. Below is an example of how to achieve this:
 > ```yml
 > libraries:
 >   Movies:
@@ -151,7 +151,7 @@ From the script directory, run
 ```
   python asset-assistant.py
 ```
-to start AA.
+to start **AssetAssistant**
 
 ## Docker
 
@@ -195,7 +195,11 @@ asset-assistant:
 I'm not a Python guy, heck I'm not even a coder, so take care when using this script. I tried to test every possible combination of variables but there's always a chance I missed something. I also personally only use Plex which I manage with Kometa, and while I did research the other supported services, I'm not as well versed on the ins and outs of them. As such, [PRs](https://github.com/mikenobbs/Asset-Assistant/pulls) are more than welcome, and if you have any issues at all feel free to post either an [Issue](https://github.com/mikenobbs/Asset-Assistant/issues), or come and find me in the [TPDb Discord Server](https://discord.gg/tpdb-community-537054151583203338), DMs welcome and I'm always around 🙂
 
 > [!Tip]
-> As an extra precaution I'd recommend either setting up some dummy directories to test AA out for yourself, or running it with just a small amount of images (eg. a single show/movie/collection). This should give you a feel for how it works and let you tweak the variables if needed before unleashing it onto your entire library. 
+> As an extra precaution I'd recommend either setting up some dummy directories to test **AssetAssistant** out for yourself, or running it with just a small amount of images (eg. a single show/movie/collection). This should give you a feel for how it works and let you tweak the variables if needed before unleashing it onto your entire library. 
 
 > [!WARNING]
 > Any images with conflicting filenames will be removed by the script to avoid any conflicts, set `enable_backup_destination: true` as an extra layer of protection.
+
+## Special Thanks
+
+First, to my friend **haydensnow**, whose [posterpal](https://github.com/haydensnow/posterpal) script started all of this. If I hadn't decided to tinker with it, **AssetAssistant** would never have been born. Secondly, huge thanks to [jrelax](https://github.com/jrelax) for his work refactoring the script, getting the docker comtainer up and running, as well as adding a bunch of additional features. All the work has inspired me to start working on this project again. And finally a shoutout to the guys over at [Kometa](https://github.com/Kometa-Team/Kometa), who unintentionally inspired me with their logs, the look great so I made it my mission to replicate them best I could 😅
