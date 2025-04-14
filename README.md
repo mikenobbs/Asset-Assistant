@@ -39,6 +39,8 @@ The script is designed primarily to use images from [The Poster Database (TPDb)]
 - All asset categories tracked and counted
 - Failed assets are backed up to be reviewed at a later time
 - Optional backup for all successful moves
+- Optional backup for any existing assets
+- Optional image compression with adjustable quality
 - Optional Discord webhook notification support
 
 ## Getting Started
@@ -50,16 +52,27 @@ After downloading/cloning the repo, unzip the file to see this directory structu
 Asset-Assistant-main
 ├── asset-assistant.py
 ├── config.yml
+├── Dockerfile
+├── entrypoint.sh
 ├── LICENSE
 ├── logo
 │   ├── logo.png
 │   └── logomark.png
 ├── modules
+|   ├── asset_processor.py
+│   ├── config_manager.py
+│   ├── file_operations.py
 │   ├── logs.py
+│   ├── media_matcher.py
 │   └── notifications.py
 ├── README.md
 ├── requirements.txt
-└── VERSION
+├── VERSION
+├── .dockerignore
+└── .github
+    ├── FUNDING.yml
+    └── workflows
+        └── docker.yml
 ```
 
 Open a terminal/CMD window in this directory and install requirements.txt
@@ -72,7 +85,7 @@ pip install -r requirements.txt
 
 To use this script you will need to edit the following variables in your config.yml file
 
-`process`: Directory for all your downloaded assets (emptied after every run)
+`process`: (Optional - defaults to script directory) Directory for all your downloaded assets (emptied after every run)
 
 `movies`: Directory that your movie assets will be moved to
 
@@ -80,11 +93,25 @@ To use this script you will need to edit the following variables in your config.
 
 `collections`: Directory where your collection assets will be moved to
 
-`enable_backup`: (Optional) true or false, false by default
+`failed`: (Optional - defaults to script directory) Directory for failed assets
 
-`service`:  (Optional) the service that you use
+`logs`: (Optional - defaults to script directory) Directory for run logs
 
-`plex_specials`: (Plex users only, required) Plex specials directory naming, true or false, true = Specials, false = Season 00
+`backup`: (Optional - defaults to script directory) Directory for backups
+
+`enable_backup_source`: (Optional) Backup for new assets
+
+`enable_backup_destination`: (Optional) Backup for existing assets
+
+`service`:  (Optional) The media service that you use
+
+`plex_specials`: (Plex users only, required) Plex specials directory naming
+
+`compress_images`: (Optional) Compress and optimize your assets
+
+`image_quality`: (Optional) The quality of the resulting JPEG
+
+`debug`: (Optional) Enable for more detailed logging
 
 `discord_webhook`: (Optional) Discord webhook URL for notifications after every run
 
@@ -115,7 +142,7 @@ To use this script you will need to edit the following variables in your config.
 > While optional, setting the `service` variable greatly expands the functionality of AA. Depending on which service you use, this setting unlocks the ability to move and rename season posters and episode cards, and even collection assets. Without it you will be limited to just movie and show assets. Please note that currently only `Kodi` and `Kometa` support collection assets unfortunately. This is due to the other services not directly supporting local assets for collections.
 
 > [!WARNING]
-> All assets will be removed from `process` after each run. In case of any incorrect moves I highly recommend using `enable_backup: true`.
+> All assets will be removed from `process` after each run. In case of any incorrect moves I highly recommend using `enable_backup_source: true`.
 
 ### Deployment
 
@@ -126,24 +153,29 @@ From the script directory, run
 ```
 to start AA.
 
-## Docker testing
+## Docker
 
-First build the image
-`docker build -t asset-assistant .`
-
-Run the image with
-```
-docker run --rm \
--e "ENABLE_BACKUP=true" \
--e "SERVICE=kometa" \
--v "/home/user/Asset-Assistant/process:/config/process" \
--v "/home/user/.docker/kometa/assets/tvshows:/config/shows" \
--v "/home/user/.docker/kometa/assets/movies:/config/movies" \
--v "/home/user/.docker/kometa/assets/z_ass:/config/collections" \
--v "/home/user/Asset-Assistant/failed:/config/failed" \
--v "/home/user/Asset-Assistant/backup:/config/backup" \
--v "/home/user/Asset-Assistant/logs:/config/logs" \
-asset-assistant
+Compose
+```yml
+asset-assistant:
+  image: mikenobbs/asset-assistant
+  container_name: asset-assistant
+  environment:
+    - ENABLE_BACKUP_SOURCE=false
+    - ENABLE_BACKUP_DESTINATION=false
+    - SERVICE=plex
+    - PLEX_SPECIALS=false
+    - COMPRESS_IMAGES=false
+    - IMAGE_QUALITY=85
+    - DEBUG=false
+  volumes:
+    - /<host_folder_config>:/config
+    - /<host_folder_movies>:/config/movies
+    - /<host_folder_shows>:/config/shows
+    - /<host_folder_collections>:/config/collections
+    #- /<host_folder_failed>:/config/failed   # Optional
+    #- /<host_folder_logs>:/config/logs   # Optional
+    #- /<host_folder_backup>:/config/backup   #Optional
 ```
 
 ## Roadmap
@@ -152,9 +184,11 @@ asset-assistant
 
 - Add more notifications options
 
-- Docker support (hopefully)
+- A web UI
 
-- A web UI (wishful thinking)
+- Scheduling
+
+- "Integration" 👀
 
 ## Disclaimer
 
@@ -164,4 +198,4 @@ I'm not a Python guy, heck I'm not even a coder, so take care when using this sc
 > As an extra precaution I'd recommend either setting up some dummy directories to test AA out for yourself, or running it with just a small amount of images (eg. a single show/movie/collection). This should give you a feel for how it works and let you tweak the variables if needed before unleashing it onto your entire library. 
 
 > [!WARNING]
-> Any images with conflicting filenames will be overwritten by the script, proceed with caution.
+> Any images with conflicting filenames will be removed by the script to avoid any conflicts, set `enable_backup_destination: true` as an extra layer of protection.
