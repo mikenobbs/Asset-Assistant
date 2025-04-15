@@ -28,9 +28,7 @@ jobs:
       - name: Get Tag
         id: get_version
         uses: baileyherbert/version-action@v3
-        run: echo ${{ steps.get_version.outputs.version-without-v }}
         
-
       - name: Build and Push
         uses: docker/build-push-action@v6
         with:
