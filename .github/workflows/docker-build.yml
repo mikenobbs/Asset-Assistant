@@ -27,7 +27,9 @@ jobs:
 
       - name: Get Tag
         id: get_version
-        run: echo "VERSION=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
+        uses: baileyherbert/version-action@v3
+        run: echo ${{ steps.get_version.outputs.version-without-v }}
+        
 
       - name: Build and Push
         uses: docker/build-push-action@v6
@@ -36,7 +38,7 @@ jobs:
           file: ./Dockerfile
           push: true
           tags: |
-            ${{ vars.DOCKER_USERNAME }}/${{ vars.DOCKER_REPO }}:${{ steps.get_version.outputs.VERSION }}
+            ${{ vars.DOCKER_USERNAME }}/${{ vars.DOCKER_REPO }}:${{ steps.get_version.outputs.version-without-v }}
             ${{ vars.DOCKER_USERNAME }}/${{ vars.DOCKER_REPO }}:latest
           cache-from: type=gha
           cache-to: type=gha,mode=max
