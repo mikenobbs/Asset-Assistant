@@ -170,13 +170,18 @@ asset-assistant:
     - DEBUG=false
   volumes:
     - /<host_folder_config>:/config
-    - /<host_folder_movies>:/config/movies
-    - /<host_folder_shows>:/config/shows
-    - /<host_folder_collections>:/config/collections
-    #- /<host_folder_failed>:/config/failed   # Optional
-    #- /<host_folder_logs>:/config/logs   # Optional
-    #- /<host_folder_backup>:/config/backup   #Optional
 ```
+You would then also need to mount your various directories, for example:
+```yml
+- /<host_folder_movies>:/config/movies
+- /<host_folder_shows>:/config/shows
+- /<host_folder_collections>:/config/collections
+```
+Or, if the directories are all within the same parent directory you could just use a single mount for convenience:
+```yml
+- /<host_folder_assets>:/config/assets
+```
+Remember to set these paths in your config.yml as well, and to do similar if you wish to change the location of the `process`, `failed`, `logs` and `backup`directories.
 
 ## Roadmap
 
