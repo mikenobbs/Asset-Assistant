@@ -59,7 +59,7 @@ Asset-Assistant-main
 │   ├── logo.png
 │   └── logomark.png
 ├── modules
-|   ├── asset_processor.py
+│   ├── asset_processor.py
 │   ├── config_manager.py
 │   ├── file_operations.py
 │   ├── logs.py
