@@ -111,19 +111,10 @@ class AssetProcessor:
                     best_match = exact_match
                     logger.debug(f" - Using exact match: '{exact_match}'")
                 
-                # If no exact match, try more flexible matching using the same variants as MediaMatcher
+                # If no exact match, try more flexible matching using MediaMatcher's variant logic
                 if not best_match:
-                    # Create variants of the file name to handle special characters
-                    file_variants = [
-                        file_name.lower(),
-                        file_name.lower().replace("-", " "),
-                        file_name.lower().replace(":", " "),
-                        file_name.lower().replace("'", ""),
-                        file_name.lower().replace(".", ""),
-                        file_name.lower().replace("-", ""),
-                        re.sub(r'[^\w\s]', '', file_name.lower()),
-                        re.sub(r'[^\w\s]', ' ', file_name.lower())
-                    ]
+                    # Use the MediaMatcher's _create_name_variants for consistency
+                    file_variants = self.media_matcher._create_name_variants(file_name)
                     
                     for dir_name in movie_dirs:
                         dir_match = re.match(r'(.+)\s\((\d{4})\)', dir_name, re.IGNORECASE)
@@ -135,17 +126,8 @@ class AssetProcessor:
                             if file_year != dir_year:
                                 continue
                                 
-                            # Create variants of the directory name for better matching
-                            dir_variants = [
-                                dir_title.lower(),
-                                dir_title.lower().replace("-", " "),
-                                dir_title.lower().replace(":", " "),
-                                dir_title.lower().replace("'", ""),
-                                dir_title.lower().replace(".", ""),
-                                dir_title.lower().replace("-", ""),
-                                re.sub(r'[^\w\s]', '', dir_title.lower()),
-                                re.sub(r'[^\w\s]', ' ', dir_title.lower())
-                            ]
+                            # Use the MediaMatcher's _create_name_variants for consistency
+                            dir_variants = self.media_matcher._create_name_variants(dir_title)
                             
                             # Check all variants against each other
                             for file_var in file_variants:
