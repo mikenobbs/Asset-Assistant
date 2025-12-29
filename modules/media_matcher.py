@@ -112,7 +112,7 @@ class MediaMatcher:
             return []
             
         name_lower = name.lower()
-        return [
+        variants = [
             name_lower,
             name_lower.replace("-", " "),
             name_lower.replace(":", " "),
@@ -121,8 +121,23 @@ class MediaMatcher:
             name_lower.replace("-", ""),
             re.sub(r'[^\w\s]', '', name_lower),
             re.sub(r'[^\w\s]', ' ', name_lower),
-            re.sub(r'\s+', '', name_lower.replace("-", ""))  # Normalized version
+            re.sub(r'\s+', '', name_lower.replace("-", "")),  # Normalized version
+            # Handle colon replacements with dashes (with various spacing)
+            # Colons are often replaced as: ":" -> "-", " -", "- ", or " - "
+            re.sub(r'-\s+', ' - ', name_lower),  # "word- word" -> "word - word"
+            re.sub(r'\s+-', ' - ', name_lower),  # "word -word" -> "word - word"
+            re.sub(r'-', ' - ', name_lower),     # "word-word" -> "word - word"
+            re.sub(r'\s*-\s*', ' ', name_lower), # Remove dashes entirely with spaces
         ]
+        
+        # Normalize multiple spaces and deduplicate
+        normalized_variants = []
+        for variant in variants:
+            normalized = re.sub(r'\s+', ' ', variant).strip()
+            if normalized not in normalized_variants:
+                normalized_variants.append(normalized)
+        
+        return normalized_variants
         
     def _find_movie_match(self, movie_name, movie_year):
         """Find matching movie directory."""
